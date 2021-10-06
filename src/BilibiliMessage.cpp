@@ -120,7 +120,7 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 	Json doc = getJson(url);
 
 	int uid = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
-	int type = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
+	int type = doc["data"]["cards"][0]["desc"]["type"].get<int>();
 	QString dynamic_id_str = QString::fromStdString(doc["data"]["cards"][0]["desc"]["dynamic_id_str"].get<std::string>());
 	QString nickname = QString::fromStdString(doc["data"]["cards"][0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
 
