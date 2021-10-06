@@ -3,6 +3,10 @@
 
 使用Qt5编写，核心实现为Request请求+Json库解析+Wintoast消息。
 
+为应对B站接口限制，目前查询为20秒/次，因此消息推送可能会有较短延迟。
+
+注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
+
 ## 功能介绍
 
 ### 启动提醒
@@ -24,6 +28,8 @@
 ### 成员直播提醒
 
 推送成员直播消息。
+
+![](screenshots/live.png)
 
 
 
