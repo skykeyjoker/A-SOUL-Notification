@@ -1,56 +1,11 @@
 ﻿#include "BilibiliMessage.h"
-#include <QFile>
-#include <iostream>
-
-
 
 BiliBiliMessage::BiliBiliMessage(QObject* parent):
 	QObject(parent)
 {
 	qDebug() << "BilibiliMessage Starting...";
 	currentLive = -1;
-
-	/* 首先进行一轮查询，填充oldMessageCard */
-	for(int i=0; i<6; ++i)
-	{
-		QString url = QString(BMURLPREFIX) + ASOULUID[i];
-		BilibiliMessageCard card = messageQuery(url);
-		oldMessageCardMap.insert(card.uid, card);
-		// 延时
-		QThread::sleep(20);
-	}
-	QThread::sleep(15);
-	/* 填充currentLive */
-	for(int i=0;i<6;++i)
-	{
-		QString url = QString(BLURLPREFIX) + ASOULUID[i];
-		BilibiliLiveCard card = liveQuery(url);
-		if (card.status == 1)
-			currentLive = card.mid;
-		/* *TODO 发送直播消息 */
-		emit newBilibiliLive(card.mid, card.title, card.url);
-		// 延时
-		QThread::sleep(20);
-	}
 	qDebug() << "BilibiliMessage Started.";
-	QThread::sleep(10);
-
-	// test
-	//emit newBilibiliMessage(672346917, 4, "577974217179897424");
-	//emit newBilibiliMessage(672346917, 1, "576419159846716883");
-	//emit newBilibiliMessage(672346917, 8, "576109793352460431");
-	//emit newBilibiliMessage(672353429, 8, "577750719968869443");
-	//emit newBilibiliMessage(351609538, 4, "577285630847094565");
-	//emit newBilibiliMessage(672328094, 4, "577931684122663291");
-	//emit newBilibiliMessage(672342685, 4, "577908499879659285");
-	//emit newBilibiliMessage(703007996, 1, "577686188082574470");
-
-	//emit newBilibiliLive(672346917, "向晚直播提醒测试","https://live.bilibili.com/22625025");
-	//emit newBilibiliLive(672353429, "贝拉直播提醒测试","https://live.bilibili.com/22632424");
-	//emit newBilibiliLive(351609538, "珈乐直播提醒测试","https://live.bilibili.com/22634198");
-	//emit newBilibiliLive(672328094, "嘉然直播提醒测试","https://live.bilibili.com/22637261");
-	//emit newBilibiliLive(672342685, "乃琳直播提醒测试","https://live.bilibili.com/22625027");
-	//emit newBilibiliLive(703007996, "A-Soul Official直播提醒测试","https://live.bilibili.com/22632157");
 }
 
 void BiliBiliMessage::startQuery()
@@ -65,11 +20,26 @@ void BiliBiliMessage::startQuery()
 		{
 			QString url = QString(BMURLPREFIX) + ASOULUID[i];
 			BilibiliMessageCard card = messageQuery(url);
-			if(oldMessageCardMap[card.uid].dynamic_id_str.compare(card.dynamic_id_str)!=0)
+			if (!card.is_null)
 			{
-				// 更新
-				oldMessageCardMap.insert(card.uid,card);
-				emit newBilibiliMessage(card.uid, card.type, card.dynamic_id_str);
+				if (!oldMessageCardMap.contains(card.uid))
+				{
+					oldMessageCardMap.insert(card.uid, card);
+				}
+				else
+				{
+					if (oldMessageCardMap[card.uid].dynamic_id_str.compare(card.dynamic_id_str) != 0)
+					{
+						// 更新
+						oldMessageCardMap.insert(card.uid, card);
+						emit newBilibiliMessage(card.uid, card.type, card.dynamic_id_str);
+					}
+				}
+			}
+			else
+			{
+				QString errorString = "查询成员动态时发生错误，返回了空的消息卡片！";
+				emit errorOccurred(errorString);
 			}
 			// 延时
 			QThread::sleep(20);
@@ -79,45 +49,52 @@ void BiliBiliMessage::startQuery()
 		{
 			QString url = QString(BLURLPREFIX) + ASOULUID[i];
 			BilibiliLiveCard card = liveQuery(url);
-			if (card.status == 1)
+			if (!card.is_null)
 			{
-				if(currentLive!=card.mid)
+				if (card.status == 1)
 				{
-					currentLive = card.mid;
-					emit newBilibiliLive(card.mid, card.title, card.url);
+					if (currentLive != card.mid)
+					{
+						currentLive = card.mid;
+						emit newBilibiliLive(card.mid, card.title, card.url);
+					}
 				}
+			}
+			else
+			{
+				QString errorString = "查询成员直播状态时发生错误，返回了空的直播状态卡片！";
+				emit errorOccurred(errorString);
 			}
 			// 延时
 			QThread::sleep(20);
 		}
 		QThread::sleep(20);
+		//emit errorOccurred("查询成员动态时发生错误，返回了空的消息卡片！");
+		//emit errorOccurred("查询成员直播状态时发生错误，返回了空的直播状态卡片！");
+		//emit errorOccurred("查询成员动态时发生错误，获取的JSON值为空！");
+		//emit errorOccurred("查询成员直播状态时发生错误，获取的JSON值为空！");
+		//emit errorOccurred("请求失败，错误类型：no network");
+		//emit errorOccurred("请求失败，获取了空的返回数据！");
+		//emit errorOccurred("请求失败，未能成功解析JSON！");
+		//emit errorOccurred("请求失败，返回状态码：200"); 
 		qDebug() << "One query end.";
 	});
 	timer->start(25000);
-
-	// test
-	//emit newBilibiliMessage(672346917, 4, "577974217179897424");
-	//emit newBilibiliMessage(672346917, 1, "576419159846716883");
-	//emit newBilibiliMessage(672346917, 8, "576109793352460431");
-	//emit newBilibiliMessage(672353429, 8, "577750719968869443");
-	//emit newBilibiliMessage(351609538, 4, "577285630847094565");
-	//emit newBilibiliMessage(672328094, 4, "577931684122663291");
-	//emit newBilibiliMessage(672342685, 4, "577908499879659285");
-	//emit newBilibiliMessage(703007996, 1, "577686188082574470");
-
-	//emit newBilibiliLive(672346917, "向晚直播提醒测试", "https://live.bilibili.com/22625025");
-	//emit newBilibiliLive(672353429, "贝拉直播提醒测试", "https://live.bilibili.com/22632424");
-	//emit newBilibiliLive(351609538, "珈乐直播提醒测试", "https://live.bilibili.com/22634198");
-	//emit newBilibiliLive(672328094, "嘉然直播提醒测试", "https://live.bilibili.com/22637261");
-	//emit newBilibiliLive(672342685, "乃琳直播提醒测试", "https://live.bilibili.com/22625027");
-	//emit newBilibiliLive(703007996, "A-Soul Official直播提醒测试", "https://live.bilibili.com/22632157");
 }
 
 BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 {
 	BilibiliMessageCard ret;
+	ret.is_null = true;
 
 	Json doc = getJson(url);
+	if (doc.is_null())
+	{
+		qDebug() << "Message Query Error. Reason: The json is null";
+		QString errorString = "查询成员动态时发生错误，获取的JSON值为空！";
+		emit errorOccurred(errorString);
+		return ret;
+	}
 
 	int uid = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
 	int type = doc["data"]["cards"][0]["desc"]["type"].get<int>();
@@ -128,6 +105,7 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 	ret.type = type;
 	ret.dynamic_id_str = dynamic_id_str;
 	ret.nickname = nickname;
+	ret.is_null = false;
 
 	qDebug() << "Message Query: " << ret.uid << ret.nickname << ret.type  << ret.dynamic_id_str;
 
@@ -137,8 +115,16 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 {
 	BilibiliLiveCard ret;
+	ret.is_null = true;
 
 	Json doc = getJson(url);
+	if(doc.is_null())
+	{
+		qDebug() << "Live Query Error. Reason: The json is null";
+		QString errorString = "查询成员直播状态时发生错误，获取的JSON值为空！";
+		emit errorOccurred(errorString);
+		return ret;
+	}
 
 	int mid = doc["data"]["mid"].get<int>();
 	int status = doc["data"]["live_room"]["liveStatus"].get<int>();
@@ -151,6 +137,7 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 	ret.title = title;
 	ret.nickname = nickname;
 	ret.url = liveurl;
+	ret.is_null = false;
 
 	qDebug() << "Live Query: " << ret.mid << ret.nickname << ret.status << ret.title << ret.url;
 
@@ -159,7 +146,6 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 
 Json BiliBiliMessage::getJson(const QString& url)
 {
-	//QJsonDocument doc;
 	Json j;
 	QNetworkAccessManager manager(this);
 	QNetworkRequest request;
@@ -172,15 +158,35 @@ Json BiliBiliMessage::getJson(const QString& url)
 
 	if (reply->error() != QNetworkReply::NoError)
 	{
-		qDebug() << "Query Error!" << url;
+		qDebug() << "Query Error! Reason: request error" << reply->errorString() << url;
+		QString errorString = "请求失败，错误类型：" + reply->errorString();
+		emit errorOccurred(errorString);
 		return j;
 	}
 
 	QByteArray buf = reply->readAll();
-	j = Json::parse(buf.data());
+	if (buf.isNull())
+	{
+		qDebug() << "No Data return";
+		QString errorString = "请求失败，获取了空的返回数据！";
+		emit errorOccurred(errorString);
+		return j;
+	}
+
+	j = Json::parse(buf.data(), nullptr, false);  // 不抛出异常
 	if(j.is_null())
 	{
 		qDebug() << "Parse Json Error!"<< url;
+		QString errorString = "请求失败，未能成功解析JSON！";
+		emit errorOccurred(errorString);
+	}
+	// 判断返回code状态码
+	int retCode = j["code"].get<int>();
+	if (retCode != 0)
+	{
+		qDebug() << "Return Code is not null";
+		QString errorString = "请求失败，返回状态码：" + QString::number(retCode);
+		emit errorOccurred(errorString);
 	}
 
 	return j;

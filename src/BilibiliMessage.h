@@ -19,6 +19,7 @@ typedef struct BilibiliMessageCard
 	QString dynamic_id_str;
 	int uid;
 	int type;
+	bool is_null;
 }BilibiliMessageCard;
 
 typedef struct BilibiliLiveCard
@@ -28,6 +29,7 @@ typedef struct BilibiliLiveCard
 	int mid;
 	int status;
 	QString url;
+	bool is_null;
 }BilibiliLiveCard;
 
 using Json = nlohmann::json;
@@ -42,6 +44,7 @@ public:
 signals:
 	void newBilibiliMessage(int user, int type, const QString dynamic_id_str);
 	void newBilibiliLive(int user, const QString title, const QString url);
+	void errorOccurred(const QString errorString);
 
 private:
 	BilibiliMessageCard messageQuery(const QString& url);

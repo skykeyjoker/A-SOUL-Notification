@@ -13,7 +13,15 @@
 
 成功启动后会发出运行中提醒。
 
-![](screenshots/1.png)
+![](screenshots/start.png)
+
+
+
+### 运行出错提醒
+
+运行中出现错误会发出相应提醒。
+
+![](screenshots/error.png)
 
 
 
@@ -22,6 +30,8 @@
 推送成员动态（动态，专栏，视频）。
 
 ![](screenshots/dy1.png)
+
+![](screenshots/dy2.png)
 
 
 
