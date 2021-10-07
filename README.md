@@ -13,7 +13,7 @@
 
 成功启动后会发出运行中提醒。
 
-![](screenshots/start.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@1.1.0/screenshots/start.png)
 
 
 
@@ -21,7 +21,7 @@
 
 运行中出现错误会发出相应提醒。
 
-![](screenshots/error.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@1.1.0/screenshots/error.png)
 
 
 
@@ -29,9 +29,9 @@
 
 推送成员动态（动态，专栏，视频）。
 
-![](screenshots/dy1.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@1.1.0/screenshots/dy1.png)
 
-![](screenshots/dy2.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@1.1.0/screenshots/dy2.png)
 
 
 
@@ -39,7 +39,7 @@
 
 推送成员直播消息。
 
-![](screenshots/live.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@1.1.0/screenshots/live.png)
 
 
 
