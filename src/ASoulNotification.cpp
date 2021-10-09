@@ -57,7 +57,7 @@ QString checkForUpdate(const QString& version)
     Json j;
     QNetworkAccessManager manager;
     QNetworkRequest request;
-    request.setUrl(QUrl("https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/version.json"));
+    request.setUrl(QUrl("https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification/version.json"));
 
     QEventLoop eventLoop;
     QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
@@ -134,11 +134,11 @@ int main(int argc, char* argv[])
 
     /* 初始化应用信息 */
     app.setApplicationName("A-Soul Notification");
-    app.setApplicationVersion("1.2.0");
+    app.setApplicationVersion("1.2.1");
     /* init wintoast */
     WinToast::instance()->setAppName(L"A-Soul Notification");
     WinToast::instance()->setAppUserModelId(
-        WinToast::configureAUMI(L"Skykey", L"A-Soul Notification", L"A-Soul Notification", L"1.1.0"));
+        WinToast::configureAUMI(L"Skykey", L"A-Soul Notification", L"A-Soul Notification", L"1.2.1"));
     if (!WinToast::instance()->initialize()) {
         qDebug() << "Error, your system in not compatible!";
     }
