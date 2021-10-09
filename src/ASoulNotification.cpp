@@ -1,8 +1,13 @@
 ﻿#include "BilibiliMessage.h"
 #include "wintoastlib.h"
+#include "json.hpp"
 
 #include <QCoreApplication>
 #include <QProcess>
+#include <QEventLoop>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
 #include <QDebug>
 
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"" ) // Hide app
@@ -11,7 +16,7 @@ using namespace WinToastLib;
 
 class CustomHandler : public IWinToastHandler {
 public:
-    CustomHandler(int uid, int type = 0, const QString url = "") : m_uid(uid), m_type(type), m_url(url)
+    CustomHandler(const QString url = "") : m_url(url)
 	{}
 
     void toastActivated() const {
@@ -20,10 +25,7 @@ public:
 
     void toastActivated(int actionIndex) const {
         std::wcout << L"The user clicked on button #" << actionIndex << L" in this toast" << std::endl;
-        if (m_type == 0)
-            QProcess::startDetached("explorer " + m_url);
-        else
-            QProcess::startDetached("explorer " + m_url);
+    	QProcess::startDetached("explorer " + m_url);
     }
 
     void toastFailed() const {
@@ -46,10 +48,71 @@ public:
         }
     }
 private:
-    int m_uid;
-    int m_type;
     QString m_url;
 };
+
+QString checkForUpdate(const QString& version)
+{
+    QString retUrlStr;
+    Json j;
+    QNetworkAccessManager manager;
+    QNetworkRequest request;
+    request.setUrl(QUrl("https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/version.json"));
+
+    QEventLoop eventLoop;
+    QObject::connect(&manager, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+    QNetworkReply* reply = manager.get(request);
+    eventLoop.exec();
+
+    if(reply->error()!=QNetworkReply::NoError)
+    {
+        qDebug() << "Can not get update from github.";
+        return retUrlStr;
+    }
+    else
+    {
+        QByteArray buf = reply->readAll();
+        if (buf.isNull())
+        {
+            qDebug() << "Update info is null.";
+            return retUrlStr;
+        }
+        else
+        {
+            j = Json::parse(buf.data(), nullptr, false);  // 不抛出异常
+            if (j.is_null())
+            {
+                qDebug() << "Update info json is null.";
+                return retUrlStr;
+            }
+            else
+            {
+
+                QString remoteVersion;
+                QString remoteUrl;
+                try
+                {
+                    remoteVersion = QString::fromStdString(j["versions"][0]["version"].get<std::string>());
+                    remoteUrl = QString::fromStdString(j["versions"][0]["url"].get<std::string>());
+                }
+                catch (...)
+                {
+                    qDebug() << "Update info json can not be parsed.";
+                    return retUrlStr;
+                }
+
+                qDebug() << remoteUrl << remoteVersion<< QString("v" + version);
+                if (QString("v" + version).compare(remoteVersion) != 0) // 本地版本与远程版本不同
+                {
+                    retUrlStr = remoteUrl;
+                }
+            	
+            }
+        }
+    }
+
+    return retUrlStr;
+}
 
 int main(int argc, char* argv[])
 {
@@ -71,7 +134,7 @@ int main(int argc, char* argv[])
 
     /* 初始化应用信息 */
     app.setApplicationName("A-Soul Notification");
-    app.setApplicationVersion("1.1.0");
+    app.setApplicationVersion("1.2.0");
     /* init wintoast */
     WinToast::instance()->setAppName(L"A-Soul Notification");
     WinToast::instance()->setAppUserModelId(
@@ -91,6 +154,25 @@ int main(int argc, char* argv[])
     if (WinToast::instance()->showToast(runInfo, new CustomHandler(0)) < 0) {
         //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
         qDebug() << "Could not launch your toast notification!";
+    }
+
+    /* 检查更新 */
+    QString retUrlStr = checkForUpdate(app.applicationVersion());
+    //QString retUrlStr = checkForUpdate("1.0.0");
+    if (!retUrlStr.isNull())  // 本地版本与远程版本不同
+    {
+	    WinToastTemplate updateNotification = WinToastTemplate(WinToastTemplate::ImageAndText01);
+        updateNotification.setImagePath(QString(app.applicationDirPath() + "/" + "avatar/update.png").toStdWString());
+        updateNotification.setTextField(L"检测到A-Soul提醒小助手新版本！", WinToastTemplate::FirstLine);
+        updateNotification.setExpiration(0);
+        updateNotification.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
+        updateNotification.setAudioOption(WinToastTemplate::AudioOption::Default);
+        updateNotification.addAction(L"前往下载");
+
+        if (WinToast::instance()->showToast(updateNotification, new CustomHandler(retUrlStr)) < 0) {
+            //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
+            qDebug() << "Could not launch your toast notification!";
+        }
     }
 
 	BiliBiliMessage bilibiliMessager;
@@ -139,7 +221,7 @@ int main(int argc, char* argv[])
             templ.setAudioOption(WinToastTemplate::AudioOption::Default);
             templ.addAction(L"前往直播间");
 
-            if (WinToast::instance()->showToast(templ, new CustomHandler(user, 1, url)) < 0) {
+            if (WinToast::instance()->showToast(templ, new CustomHandler(url)) < 0) {
                 //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
                 qDebug() << "Could not launch your toast notification!";
             }
@@ -201,7 +283,7 @@ int main(int argc, char* argv[])
             templ.setAudioOption(WinToastTemplate::AudioOption::Default);
             templ.addAction(L"前往动态");
 
-            if (WinToast::instance()->showToast(templ, new CustomHandler(user, 1, url)) < 0) {
+            if (WinToast::instance()->showToast(templ, new CustomHandler(url)) < 0) {
                 //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
                 qDebug() << "Could not launch your toast notification!";
             }

@@ -2,7 +2,7 @@
 #define BILIBILIMESSAGE_H
 
 #include "Essential.h"
-#include "3rd/json.hpp"
+#include "json.hpp"
 
 #include <QObject>
 #include <QtCore>

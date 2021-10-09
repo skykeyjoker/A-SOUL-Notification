@@ -25,6 +25,14 @@
 
 
 
+### 插件更新提醒
+
+提醒插件有新版本并引导前往下载。
+
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/update.png)
+
+
+
 ### 成员动态提醒
 
 推送成员动态（动态，专栏，视频）。

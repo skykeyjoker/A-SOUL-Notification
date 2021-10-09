@@ -42,9 +42,10 @@ void BiliBiliMessage::startQuery()
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(20);
+			QThread::sleep(10);
 		}
 		QThread::sleep(15);
+
 		for (int i = 0; i < 6; ++i)
 		{
 			QString url = QString(BLURLPREFIX) + ASOULUID[i];
@@ -66,7 +67,7 @@ void BiliBiliMessage::startQuery()
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(20);
+			QThread::sleep(10);
 		}
 		QThread::sleep(20);
 		//emit errorOccurred("查询成员动态时发生错误，返回了空的消息卡片！");
@@ -96,10 +97,27 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 		return ret;
 	}
 
-	int uid = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
-	int type = doc["data"]["cards"][0]["desc"]["type"].get<int>();
-	QString dynamic_id_str = QString::fromStdString(doc["data"]["cards"][0]["desc"]["dynamic_id_str"].get<std::string>());
-	QString nickname = QString::fromStdString(doc["data"]["cards"][0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
+	/* []操作符理应有异常机制，对异常机制进行处理
+	 * JSON_THROW(std::out_of_range("key not found"));
+	 */
+	int uid;
+	int type;
+	QString dynamic_id_str;
+	QString nickname;
+	try
+	{
+		uid = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
+		type = doc["data"]["cards"][0]["desc"]["type"].get<int>();
+		dynamic_id_str = QString::fromStdString(doc["data"]["cards"][0]["desc"]["dynamic_id_str"].get<std::string>());
+		nickname = QString::fromStdString(doc["data"]["cards"][0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
+	}
+	catch (...)
+	{
+		qDebug() << "Message Query Error. Reason: The json can not be parsed";
+		QString errorString = "查询成员动态时发生错误，未能解析获取的JSON！";
+		emit errorOccurred(errorString);
+		return ret;
+	}
 
 	ret.uid = uid;
 	ret.type = type;
@@ -126,11 +144,29 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 		return ret;
 	}
 
-	int mid = doc["data"]["mid"].get<int>();
-	int status = doc["data"]["live_room"]["liveStatus"].get<int>();
-	QString title = QString::fromStdString(doc["data"]["live_room"]["title"].get<std::string>());
-	QString nickname = QString::fromStdString(doc["data"]["name"].get<std::string>());
-	QString liveurl = QString::fromStdString(doc["data"]["live_room"]["url"].get<std::string>());
+	/* []操作符理应有异常机制，对异常机制进行处理
+	 * JSON_THROW(std::out_of_range("key not found"));
+	 */
+	int mid;
+	int status;
+	QString title;
+	QString nickname;
+	QString liveurl;
+	try
+	{
+		mid = doc["data"]["mid"].get<int>();
+		status = doc["data"]["live_room"]["liveStatus"].get<int>();
+		title = QString::fromStdString(doc["data"]["live_room"]["title"].get<std::string>());
+		nickname = QString::fromStdString(doc["data"]["name"].get<std::string>());
+		liveurl = QString::fromStdString(doc["data"]["live_room"]["url"].get<std::string>());
+	}
+	catch (...)
+	{
+		qDebug() << "Live Query Error. Reason: The json can not be parsed";
+		QString errorString = "查询成员直播状态时发生错误，未能解析获取的JSON！";
+		emit errorOccurred(errorString);
+		return ret;
+	}
 
 	ret.mid = mid;
 	ret.status = status;
@@ -179,14 +215,29 @@ Json BiliBiliMessage::getJson(const QString& url)
 		qDebug() << "Parse Json Error!"<< url;
 		QString errorString = "请求失败，未能成功解析JSON！";
 		emit errorOccurred(errorString);
+		return j;
 	}
+
 	// 判断返回code状态码
-	int retCode = j["code"].get<int>();
+	int retCode;
+	try
+	{
+		retCode = j["code"].get<int>();
+	}
+	catch (...)
+	{
+		qDebug() << "Parse Json Error! Can not get the [code]";
+		QString errorString = "请求失败，解析JSON[code]时失败！";
+		emit errorOccurred(errorString);
+		return Json();  // 返回空的JSON
+	}
+	
 	if (retCode != 0)
 	{
 		qDebug() << "Return Code is not null";
 		QString errorString = "请求失败，返回状态码：" + QString::number(retCode);
 		emit errorOccurred(errorString);
+		return Json();  // 返回空的JSON
 	}
 
 	return j;
