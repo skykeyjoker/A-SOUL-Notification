@@ -1,21 +1,27 @@
 ﻿#include "BilibiliMessage.h"
 
-BiliBiliMessage::BiliBiliMessage(QObject* parent):
+BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QObject* parent) :
+	m_logger(logger),
 	QObject(parent)
 {
 	qDebug() << "BilibiliMessage Starting...";
+	m_logger->info("哔哩哔哩查询模块初始化。");
 	currentLive = -1;
 	qDebug() << "BilibiliMessage Started.";
+	m_logger->info("哔哩哔哩查询模块初始化成功。");
 }
 
 void BiliBiliMessage::startQuery()
 {
 	/* 3/min查询 */
 	qDebug() << "Start one query.";
+	m_logger->info("哔哩哔哩查询模块开始查询。");
 	QTimer* timer = new QTimer(this);
 	connect(timer, &QTimer::timeout, this, [&]()
 	{
 		qDebug() << "time out start";
+		m_logger->info("哔哩哔哩查询模块开始一次查询。");
+		m_logger->info("开始查询动态。");
 		for (int i = 0; i < 6; ++i)
 		{
 			QString url = QString(BMURLPREFIX) + ASOULUID[i];
@@ -39,13 +45,14 @@ void BiliBiliMessage::startQuery()
 			else
 			{
 				QString errorString = "查询成员动态时发生错误，返回了空的消息卡片！";
+				m_logger->error("查询成员动态时发生错误，返回了空的消息卡片！");
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(10);
+			QThread::sleep(20);
 		}
-		QThread::sleep(15);
 
+		m_logger->info("开始查询直播。");
 		for (int i = 0; i < 6; ++i)
 		{
 			QString url = QString(BLURLPREFIX) + ASOULUID[i];
@@ -64,10 +71,11 @@ void BiliBiliMessage::startQuery()
 			else
 			{
 				QString errorString = "查询成员直播状态时发生错误，返回了空的直播状态卡片！";
+				m_logger->error("查询成员直播状态时发生错误，返回了空的直播状态卡片！");
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(10);
+			QThread::sleep(20);
 		}
 		QThread::sleep(20);
 		//emit errorOccurred("查询成员动态时发生错误，返回了空的消息卡片！");
@@ -79,6 +87,7 @@ void BiliBiliMessage::startQuery()
 		//emit errorOccurred("请求失败，未能成功解析JSON！");
 		//emit errorOccurred("请求失败，返回状态码：200"); 
 		qDebug() << "One query end.";
+		m_logger->info("哔哩哔哩查询模块结束一次查询。");
 	});
 	timer->start(25000);
 }
@@ -93,6 +102,7 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 	{
 		qDebug() << "Message Query Error. Reason: The json is null";
 		QString errorString = "查询成员动态时发生错误，获取的JSON值为空！";
+		m_logger->error("查询成员动态时发生错误，获取的JSON值为空！");
 		emit errorOccurred(errorString);
 		return ret;
 	}
@@ -115,6 +125,7 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 	{
 		qDebug() << "Message Query Error. Reason: The json can not be parsed";
 		QString errorString = "查询成员动态时发生错误，未能解析获取的JSON！";
+		m_logger->error("查询成员动态时发生错误，未能解析获取的JSON！");
 		emit errorOccurred(errorString);
 		return ret;
 	}
@@ -126,6 +137,7 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 	ret.is_null = false;
 
 	qDebug() << "Message Query: " << ret.uid << ret.nickname << ret.type  << ret.dynamic_id_str;
+	m_logger->info("动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", ret.uid, ret.nickname.toStdString(), ret.type, ret.dynamic_id_str.toStdString());
 
 	return ret;
 }
@@ -140,6 +152,7 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 	{
 		qDebug() << "Live Query Error. Reason: The json is null";
 		QString errorString = "查询成员直播状态时发生错误，获取的JSON值为空！";
+		m_logger->error("查询成员直播状态时发生错误，获取的JSON值为空！");
 		emit errorOccurred(errorString);
 		return ret;
 	}
@@ -164,6 +177,7 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 	{
 		qDebug() << "Live Query Error. Reason: The json can not be parsed";
 		QString errorString = "查询成员直播状态时发生错误，未能解析获取的JSON！";
+		m_logger->error("查询成员直播状态时发生错误，未能解析获取的JSON！");
 		emit errorOccurred(errorString);
 		return ret;
 	}
@@ -176,6 +190,7 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 	ret.is_null = false;
 
 	qDebug() << "Live Query: " << ret.mid << ret.nickname << ret.status << ret.title << ret.url;
+	m_logger->info("直播消息卡片：MID：{}，昵称：{}，状态：{}，标题：{}，网址：{}", ret.mid, ret.nickname.toStdString(), ret.status, ret.title.toStdString(), ret.url.toStdString());
 
 	return ret;
 }
@@ -195,6 +210,7 @@ Json BiliBiliMessage::getJson(const QString& url)
 	if (reply->error() != QNetworkReply::NoError)
 	{
 		qDebug() << "Query Error! Reason: request error" << reply->errorString() << url;
+		m_logger->error("请求失败，错误类型：{}", reply->errorString().toStdString());
 		QString errorString = "请求失败，错误类型：" + reply->errorString();
 		emit errorOccurred(errorString);
 		return j;
@@ -204,6 +220,7 @@ Json BiliBiliMessage::getJson(const QString& url)
 	if (buf.isNull())
 	{
 		qDebug() << "No Data return";
+		m_logger->error("请求失败，获取了空的返回数据！");
 		QString errorString = "请求失败，获取了空的返回数据！";
 		emit errorOccurred(errorString);
 		return j;
@@ -213,6 +230,7 @@ Json BiliBiliMessage::getJson(const QString& url)
 	if(j.is_null())
 	{
 		qDebug() << "Parse Json Error!"<< url;
+		m_logger->error("请求失败，未能成功解析JSON！");
 		QString errorString = "请求失败，未能成功解析JSON！";
 		emit errorOccurred(errorString);
 		return j;
@@ -227,6 +245,7 @@ Json BiliBiliMessage::getJson(const QString& url)
 	catch (...)
 	{
 		qDebug() << "Parse Json Error! Can not get the [code]";
+		m_logger->error("请求失败，解析JSON[code]时失败！");
 		QString errorString = "请求失败，解析JSON[code]时失败！";
 		emit errorOccurred(errorString);
 		return Json();  // 返回空的JSON
@@ -235,6 +254,7 @@ Json BiliBiliMessage::getJson(const QString& url)
 	if (retCode != 0)
 	{
 		qDebug() << "Return Code is not null";
+		m_logger->error("请求失败，返回状态码：{}", retCode);
 		QString errorString = "请求失败，返回状态码：" + QString::number(retCode);
 		emit errorOccurred(errorString);
 		return Json();  // 返回空的JSON

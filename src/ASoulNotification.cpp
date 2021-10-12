@@ -9,10 +9,16 @@
 #include <QNetworkRequest>
 #include <QNetworkReply>
 #include <QDebug>
+#include <QDir>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <chrono>
 
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"" ) // Hide app
 
 using namespace WinToastLib;
+
+
 
 class CustomHandler : public IWinToastHandler {
 public:
@@ -51,7 +57,7 @@ private:
     QString m_url;
 };
 
-QString checkForUpdate(const QString& version)
+QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger> &logger)
 {
     QString retUrlStr;
     Json j;
@@ -67,6 +73,8 @@ QString checkForUpdate(const QString& version)
     if(reply->error()!=QNetworkReply::NoError)
     {
         qDebug() << "Can not get update from github.";
+        logger->error("Update Error. Can not get update from github.");
+
         return retUrlStr;
     }
     else
@@ -75,6 +83,7 @@ QString checkForUpdate(const QString& version)
         if (buf.isNull())
         {
             qDebug() << "Update info is null.";
+            logger->error("Update Error. Update info is null.");
             return retUrlStr;
         }
         else
@@ -83,6 +92,7 @@ QString checkForUpdate(const QString& version)
             if (j.is_null())
             {
                 qDebug() << "Update info json is null.";
+                logger->error("Update Error. Update info json is null.");
                 return retUrlStr;
             }
             else
@@ -98,10 +108,12 @@ QString checkForUpdate(const QString& version)
                 catch (...)
                 {
                     qDebug() << "Update info json can not be parsed.";
+                    logger->error("Update Error. Update info json can not be parsed.");
                     return retUrlStr;
                 }
 
                 qDebug() << remoteUrl << remoteVersion<< QString("v" + version);
+                logger->info("Romote Version: {}, Remote Url: {}", version.toStdString(), remoteUrl.toStdString());
                 if (QString("v" + version).compare(remoteVersion) != 0) // 本地版本与远程版本不同
                 {
                     retUrlStr = remoteUrl;
@@ -117,7 +129,28 @@ QString checkForUpdate(const QString& version)
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
+
+    // 初始化logs文件夹
+    QDir logDir;
+    logDir.setPath(app.applicationDirPath());
+    if (logDir.exists("logs"))
+    {
+        if (logDir.exists("logs/log.txt"))
+        {
+            logDir.remove("logs/log.txt");
+        }
+    }
+    else
+        logDir.mkdir("logs");
+
+    // 初始化spdlog
+    auto main_logger = spdlog::basic_logger_mt("main_logger", "logs/log.txt");
+    main_logger->set_level(spdlog::level::debug);
+    main_logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%L%$] [thread %t] %v");
+    spdlog::flush_every(std::chrono::seconds(3));
+
 	qDebug() << "A-Soul Notification is Running!";
+    main_logger->info("A-Soul提醒小助手启动！");
 
     /* 检测重复运行*/
     QProcess process;
@@ -128,19 +161,23 @@ int main(int argc, char* argv[])
     if(outputStr.count(processName)>1)
     {
         qDebug("已有另外一个实例处于运行中！");
+        main_logger->error("已有另外一个实例处于运行中！");
+        main_logger->flush();
+
         app.exit(1);
         return 1;
     }
 
     /* 初始化应用信息 */
     app.setApplicationName("A-Soul Notification");
-    app.setApplicationVersion("1.2.1");
+    app.setApplicationVersion("1.3.0");
     /* init wintoast */
     WinToast::instance()->setAppName(L"A-Soul Notification");
     WinToast::instance()->setAppUserModelId(
-        WinToast::configureAUMI(L"Skykey", L"A-Soul Notification", L"A-Soul Notification", L"1.2.1"));
+        WinToast::configureAUMI(L"Skykey", L"A-Soul Notification", L"A-Soul Notification", L"1.3.0"));
     if (!WinToast::instance()->initialize()) {
         qDebug() << "Error, your system in not compatible!";
+        main_logger->error("系统不支持WinToast！");
     }
 
     /* 应用启动显示提示信息 */
@@ -154,13 +191,16 @@ int main(int argc, char* argv[])
     if (WinToast::instance()->showToast(runInfo, new CustomHandler(0)) < 0) {
         //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
         qDebug() << "Could not launch your toast notification!";
+        main_logger->error("启动信息Wintoast启动失败！");
     }
+    main_logger->info("A-Soul提醒小助手启动成功！");
 
     /* 检查更新 */
-    QString retUrlStr = checkForUpdate(app.applicationVersion());
+    QString retUrlStr = checkForUpdate(app.applicationVersion(), main_logger);
     //QString retUrlStr = checkForUpdate("1.0.0");
     if (!retUrlStr.isNull())  // 本地版本与远程版本不同
     {
+        main_logger->info("检测到A-Soul提醒小助手新版本，启动更新提醒Wintoast。");
 	    WinToastTemplate updateNotification = WinToastTemplate(WinToastTemplate::ImageAndText01);
         updateNotification.setImagePath(QString(app.applicationDirPath() + "/" + "avatar/update.png").toStdWString());
         updateNotification.setTextField(L"检测到A-Soul提醒小助手新版本！", WinToastTemplate::FirstLine);
@@ -172,13 +212,15 @@ int main(int argc, char* argv[])
         if (WinToast::instance()->showToast(updateNotification, new CustomHandler(retUrlStr)) < 0) {
             //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
             qDebug() << "Could not launch your toast notification!";
+            main_logger->error("更新提醒Wintoast启动失败！");
         }
     }
 
-	BiliBiliMessage bilibiliMessager;
+	BiliBiliMessage bilibiliMessager(main_logger);
 
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::newBilibiliLive, [&](int user, const QString title, const QString url)
         {
+            main_logger->info("新直播消息信号，启动直播提醒Wintoast。成员：{}，标题：{}，网址：{}", user, title.toStdString(), url.toStdString());
             qDebug() << "直播：" << user << title << url;
             WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText04);
             QString imagePath = app.applicationDirPath() + "/";
@@ -224,10 +266,12 @@ int main(int argc, char* argv[])
             if (WinToast::instance()->showToast(templ, new CustomHandler(url)) < 0) {
                 //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
                 qDebug() << "Could not launch your toast notification!";
+                main_logger->error("直播提醒WinToast启动失败！");
             }
         });
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::newBilibiliMessage, [&](int user, int type, const QString dynamic_id_str)
         {
+            main_logger->info("新动态消息信号，启动动态提醒Wintoast。成员：{}，类型：{}，动态id：{}", user, type, dynamic_id_str.toStdString());
             qDebug() << "动态" << user << type << dynamic_id_str;
             WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
             QString imagePath = app.applicationDirPath() + "/";
@@ -286,11 +330,13 @@ int main(int argc, char* argv[])
             if (WinToast::instance()->showToast(templ, new CustomHandler(url)) < 0) {
                 //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
                 qDebug() << "Could not launch your toast notification!";
+                main_logger->error("动态提醒WinToast启动失败！");
             }
         });
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::errorOccurred, [&](const QString errorString)
         {
             qDebug() << "Error Occurred Signal...";
+            main_logger->info("新错误信号，启动错误提醒Wintoast。错误信息：{}", errorString.toStdString());
             WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
             QString imagePath = app.applicationDirPath() + "/avatar/error.png";
             templ.setImagePath(imagePath.toStdWString());
@@ -303,6 +349,7 @@ int main(int argc, char* argv[])
             if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
                 //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
                 qDebug() << "Could not launch your toast notification!";
+                main_logger->error("错误提醒WinToast启动失败！");
             }
         });
 

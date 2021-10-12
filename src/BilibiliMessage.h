@@ -12,6 +12,8 @@
 #include <QNetworkReply>
 #include <QTimer>
 #include <QDebug>
+#include <spdlog/spdlog.h>
+#include <spdlog/sinks/basic_file_sink.h>
 
 typedef struct BilibiliMessageCard
 {
@@ -38,7 +40,7 @@ class BiliBiliMessage: public QObject
 {
 	Q_OBJECT
 public:
-	BiliBiliMessage(QObject* parent = nullptr);
+	BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QObject* parent = nullptr);
 	void startQuery();
 
 signals:
@@ -54,6 +56,7 @@ private:
 private:
 	QMap<int, BilibiliMessageCard> oldMessageCardMap;
 	int currentLive;
+	std::shared_ptr<spdlog::logger>& m_logger;
 };
 
 
