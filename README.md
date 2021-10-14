@@ -1,5 +1,5 @@
-# A-Soul Notification
-一个A-Soul成员动态/直播提醒插件，仅能在Windows10-Windows11系统上运行。
+# A-SOUL Notification
+一个A-SOUL成员动态/直播提醒插件，仅能在Windows10-Windows11系统上运行。
 
 使用Qt5编写，核心实现为Request请求+Json库解析+Wintoast消息。
 
