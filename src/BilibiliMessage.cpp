@@ -1,6 +1,7 @@
 ﻿#include "BilibiliMessage.h"
 
-BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QObject* parent) :
+BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList uidList, QObject* parent) :
+	m_uidList(uidList),
 	m_logger(logger),
 	QObject(parent)
 {
@@ -16,15 +17,15 @@ void BiliBiliMessage::startQuery()
 	/* 3/min查询 */
 	qDebug() << "Start one query.";
 	m_logger->info("哔哩哔哩查询模块开始查询。");
-	QTimer* timer = new QTimer(this);
-	connect(timer, &QTimer::timeout, this, [&]()
+
+	while(1)
 	{
-		qDebug() << "time out start";
 		m_logger->info("哔哩哔哩查询模块开始一次查询。");
 		m_logger->info("开始查询动态。");
 		for (int i = 0; i < 6; ++i)
 		{
-			QString url = QString(BMURLPREFIX) + ASOULUID[i];
+			//QString url = QString(BMURLPREFIX) + ASOULUID[i];
+			QString url = QString(BMURLPREFIX) + m_uidList[i];
 			BilibiliMessageCard card = messageQuery(url);
 			if (!card.is_null)
 			{
@@ -49,13 +50,15 @@ void BiliBiliMessage::startQuery()
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(20);
+			QThread::sleep(5);
+
 		}
 
 		m_logger->info("开始查询直播。");
 		for (int i = 0; i < 6; ++i)
 		{
-			QString url = QString(BLURLPREFIX) + ASOULUID[i];
+			//QString url = QString(BLURLPREFIX) + ASOULUID[i];
+			QString url = QString(BLURLPREFIX) + m_uidList[i];
 			BilibiliLiveCard card = liveQuery(url);
 			if (!card.is_null)
 			{
@@ -75,9 +78,9 @@ void BiliBiliMessage::startQuery()
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(20);
+			QThread::sleep(5);
 		}
-		QThread::sleep(20);
+		QThread::sleep(5);
 		//emit errorOccurred("查询成员动态时发生错误，返回了空的消息卡片！");
 		//emit errorOccurred("查询成员直播状态时发生错误，返回了空的直播状态卡片！");
 		//emit errorOccurred("查询成员动态时发生错误，获取的JSON值为空！");
@@ -85,11 +88,11 @@ void BiliBiliMessage::startQuery()
 		//emit errorOccurred("请求失败，错误类型：no network");
 		//emit errorOccurred("请求失败，获取了空的返回数据！");
 		//emit errorOccurred("请求失败，未能成功解析JSON！");
-		//emit errorOccurred("请求失败，返回状态码：200"); 
+		//emit errorOccurred("请求失败，返回状态码：200");
+		//emit newBilibiliMessage(672328094, 1, "585849885826328920");
 		qDebug() << "One query end.";
 		m_logger->info("哔哩哔哩查询模块结束一次查询。");
-	});
-	timer->start(25000);
+	}
 }
 
 BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)

@@ -15,32 +15,13 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 
-typedef struct BilibiliMessageCard
-{
-	QString nickname;
-	QString dynamic_id_str;
-	int uid;
-	int type;
-	bool is_null;
-}BilibiliMessageCard;
-
-typedef struct BilibiliLiveCard
-{
-	QString nickname;
-	QString title;
-	int mid;
-	int status;
-	QString url;
-	bool is_null;
-}BilibiliLiveCard;
-
 using Json = nlohmann::json;
 
 class BiliBiliMessage: public QObject
 {
 	Q_OBJECT
 public:
-	BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QObject* parent = nullptr);
+	BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList uidList, QObject* parent = nullptr);
 	void startQuery();
 
 signals:
@@ -57,6 +38,7 @@ private:
 	QMap<int, BilibiliMessageCard> oldMessageCardMap;
 	int currentLive;
 	std::shared_ptr<spdlog::logger>& m_logger;
+	QStringList m_uidList;
 };
 
 

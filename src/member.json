@@ -1,0 +1,34 @@
+{
+	"member": [
+		{
+			"uid": 672346917,
+			"nickname": "向晚",
+			"avatar": "ava.jpg"
+		},
+		{
+			"uid": 672353429,
+			"nickname": "贝拉",
+			"avatar": "bella.jpg"
+		},
+		{
+			"uid": 351609538,
+			"nickname": "珈乐",
+			"avatar": "carol.jpg"
+		},
+		{
+			"uid": 672328094,
+			"nickname": "嘉然",
+			"avatar": "diana.jpg"
+		},
+		{
+			"uid": 672342685,
+			"nickname": "乃琳",
+			"avatar": "eileen.jpg"
+		},
+		{
+			"uid": 703007996,
+			"nickname": "A-SOUL Official",
+			"avatar": "official.jpg"
+		}
+	]
+}

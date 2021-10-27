@@ -7,13 +7,24 @@ const QString BMURLPREFIX("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_sv
 const QString BLURLPREFIX("https://api.bilibili.com/x/space/acc/info?mid=");
 const QString BDYNAMICURLPREFIX("https://t.bilibili.com/");
 
-const QStringList ASOULUID{ "672346917" ,"672353429" ,"351609538" ,"672328094" ,"672342685" ,"703007996" };
-#define AVAUID 672346917
-#define BELLAUID 672353429
-#define CAROLUID 351609538
-#define DIANAUID 672328094
-#define EILEENUID 672342685
-#define OFFICIALUID 703007996
+typedef struct BilibiliMessageCard
+{
+	QString nickname;
+	QString dynamic_id_str;
+	int uid;
+	int type;
+	bool is_null;
+}BilibiliMessageCard;
+
+typedef struct BilibiliLiveCard
+{
+	QString nickname;
+	QString title;
+	int mid;
+	int status;
+	QString url;
+	bool is_null;
+}BilibiliLiveCard;
 
 
 #endif /* ESSENTIAL_H */

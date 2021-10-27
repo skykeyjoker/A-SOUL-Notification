@@ -10,6 +10,7 @@
 #include <QNetworkReply>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <chrono>
@@ -17,7 +18,6 @@
 #pragma comment( linker, "/subsystem:\"windows\" /entry:\"mainCRTStartup\"" ) // Hide app
 
 using namespace WinToastLib;
-
 
 
 class CustomHandler : public IWinToastHandler {
@@ -126,6 +126,8 @@ QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger> &
     return retUrlStr;
 }
 
+
+
 int main(int argc, char* argv[])
 {
 	QCoreApplication app(argc, argv);
@@ -149,8 +151,8 @@ int main(int argc, char* argv[])
     main_logger->set_pattern("[%Y-%m-%d %H:%M:%S] [%^%L%$] [thread %t] %v");
     spdlog::flush_every(std::chrono::seconds(3));
 
-	qDebug() << "A-Soul Notification is Running!";
-    main_logger->info("A-Soul提醒小助手启动！");
+	qDebug() << "A-SOUL Notification is Running!";
+    main_logger->info("A-SOUL提醒小助手启动！");
 
     /* 检测重复运行*/
     QProcess process;
@@ -169,12 +171,12 @@ int main(int argc, char* argv[])
     }
 
     /* 初始化应用信息 */
-    app.setApplicationName("A-Soul Notification");
-    app.setApplicationVersion("1.3.0");
+    app.setApplicationName("A-SOUL Notification");
+    app.setApplicationVersion("1.4.0");
     /* init wintoast */
-    WinToast::instance()->setAppName(L"A-Soul Notification");
+    WinToast::instance()->setAppName(L"A-SOUL Notification");
     WinToast::instance()->setAppUserModelId(
-        WinToast::configureAUMI(L"Skykey", L"A-Soul Notification", L"A-Soul Notification", L"1.3.0"));
+        WinToast::configureAUMI(L"Skykey", L"A-SOUL Notification", L"A-SOUL Notification", L"1.4.0"));
     if (!WinToast::instance()->initialize()) {
         qDebug() << "Error, your system in not compatible!";
         main_logger->error("系统不支持WinToast！");
@@ -184,7 +186,7 @@ int main(int argc, char* argv[])
     //ImageAndText01
     WinToastTemplate runInfo = WinToastTemplate(WinToastTemplate::ImageAndText01);
     runInfo.setImagePath(QString(app.applicationDirPath() + "/" + "avatar/icon.png").toStdWString());
-    runInfo.setTextField(L"A-Soul提醒小助手运行中！", WinToastTemplate::FirstLine);
+    runInfo.setTextField(L"A-SOUL提醒小助手运行中！", WinToastTemplate::FirstLine);
     runInfo.setExpiration(0);
     runInfo.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
     runInfo.setAudioOption(WinToastTemplate::AudioOption::Default);
@@ -193,17 +195,17 @@ int main(int argc, char* argv[])
         qDebug() << "Could not launch your toast notification!";
         main_logger->error("启动信息Wintoast启动失败！");
     }
-    main_logger->info("A-Soul提醒小助手启动成功！");
+    main_logger->info("A-SOUL提醒小助手启动成功！");
 
     /* 检查更新 */
     QString retUrlStr = checkForUpdate(app.applicationVersion(), main_logger);
     //QString retUrlStr = checkForUpdate("1.0.0");
     if (!retUrlStr.isNull())  // 本地版本与远程版本不同
     {
-        main_logger->info("检测到A-Soul提醒小助手新版本，启动更新提醒Wintoast。");
+        main_logger->info("检测到A-SOUL提醒小助手新版本，启动更新提醒Wintoast。");
 	    WinToastTemplate updateNotification = WinToastTemplate(WinToastTemplate::ImageAndText01);
         updateNotification.setImagePath(QString(app.applicationDirPath() + "/" + "avatar/update.png").toStdWString());
-        updateNotification.setTextField(L"检测到A-Soul提醒小助手新版本！", WinToastTemplate::FirstLine);
+        updateNotification.setTextField(L"检测到A-SOUL提醒小助手新版本！", WinToastTemplate::FirstLine);
         updateNotification.setExpiration(0);
         updateNotification.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
         updateNotification.setAudioOption(WinToastTemplate::AudioOption::Default);
@@ -216,7 +218,60 @@ int main(int argc, char* argv[])
         }
     }
 
-	BiliBiliMessage bilibiliMessager(main_logger);
+    /* 读取配置文件 */
+    QFile m_file("member.json");
+    QHash<int, QHash<QString, QString>> memberMap;
+    QStringList uid_list;
+    if (m_file.open(QFile::ReadOnly))
+    {
+        Json m_json;
+        QByteArray buf = m_file.readAll();
+        if(buf.isNull())
+        {
+            qDebug() << "Member json File is null.";
+            main_logger->error("Read Member json Error. Read Member json file is null.");
+            m_file.close();
+
+            exit(1);  // 立即退出程序
+        }
+
+        m_json = Json::parse(buf.data(), nullptr, false);  // 不抛出异常
+        if (m_json.is_null())
+        {
+            qDebug() << "Member json is null.";
+            main_logger->error("Read Member json Error. Read Member json is null.");
+            m_file.close();
+
+        	exit(1);  // 立即退出程序
+        }
+        else
+        {
+            // 赋值memberMap
+            auto arr = m_json["member"];
+            for(int i=0; i<arr.size(); ++i)
+            {
+                int uid = arr[i]["uid"].get<int>();
+                QString nickName = QString::fromStdString(arr[i]["nickname"].get<std::string>());
+                QString avatar = QString::fromStdString(arr[i]["avatar"].get<std::string>());
+                uid_list << QString::number(uid);
+                memberMap[uid]["nickname"] = nickName;
+                memberMap[uid]["avatar"] = avatar;
+                qDebug() << uid << nickName<< avatar;
+            }
+            main_logger->info("Member Json loaded successfully.");
+        }
+    }
+    else
+    {
+        qDebug() << "Member json can not be opened.";
+        main_logger->error("Read Member json Error. Read Member json can not be opened.");
+        m_file.close();
+
+        exit(1);  // 立即退出程序
+    }
+    m_file.close();
+
+	BiliBiliMessage bilibiliMessager(main_logger, uid_list);
 
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::newBilibiliLive, [&](int user, const QString title, const QString url)
         {
@@ -225,33 +280,9 @@ int main(int argc, char* argv[])
             WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText04);
             QString imagePath = app.applicationDirPath() + "/";
             QString userName;
-            switch (user)
-            {
-            case AVAUID:
-                imagePath += "avatar/ava.jpg";
-                userName = "向晚";
-                break;
-            case BELLAUID:
-                imagePath += "avatar/bella.jpg";
-                userName = "贝拉";
-                break;
-            case CAROLUID:
-                imagePath += "avatar/carol.jpg";
-                userName = "珈乐";
-                break;
-            case DIANAUID:
-                imagePath += "avatar/diana.jpg";
-                userName = "嘉然";
-                break;
-            case EILEENUID:
-                imagePath += "avatar/eileen.jpg";
-                userName = "乃琳";
-                break;
-            case OFFICIALUID:
-                imagePath += "avatar/official.jpg";
-                userName = "A-Soul Official";
-                break;
-            }
+
+            imagePath += "avatar/" + memberMap[user]["avatar"];
+            userName = memberMap[user]["nickname"];
             userName += "正在直播";
             qDebug() << imagePath;
             templ.setImagePath(imagePath.toStdWString());
@@ -277,33 +308,8 @@ int main(int argc, char* argv[])
             QString imagePath = app.applicationDirPath() + "/";
             QString userName;
             QString url = BDYNAMICURLPREFIX + dynamic_id_str;
-            switch (user)
-            {
-            case AVAUID:
-                imagePath += "avatar/ava.jpg";
-                userName = "向晚";
-                break;
-            case BELLAUID:
-                imagePath += "avatar/bella.jpg";
-                userName = "贝拉";
-                break;
-            case CAROLUID:
-                imagePath += "avatar/carol.jpg";
-                userName = "珈乐";
-                break;
-            case DIANAUID:
-                imagePath += "avatar/diana.jpg";
-                userName = "嘉然";
-                break;
-            case EILEENUID:
-                imagePath += "avatar/eileen.jpg";
-                userName = "乃琳";
-                break;
-            case OFFICIALUID:
-                imagePath += "avatar/official.jpg";
-                userName = "A-Soul Official";
-                break;
-            }
+            userName = memberMap[user]["nickname"];
+
             switch (type)
             {
             case 8:
@@ -318,6 +324,7 @@ int main(int argc, char* argv[])
             default:
                 userName += "有了新动态";
             }
+            imagePath += "avatar/" + memberMap[user]["avatar"];
             qDebug() << imagePath;
             templ.setImagePath(imagePath.toStdWString());
             templ.setTextField(L"成员动态提醒", WinToastTemplate::FirstLine);
