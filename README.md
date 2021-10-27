@@ -1,9 +1,11 @@
 # A-SOUL Notification
 一个A-SOUL成员动态/直播提醒插件，仅能在Windows10-Windows11系统上运行。
 
+* 注：现在已经实现自定义用户查询，可以编辑`member.json`文件设置想要查询的用户。
+
 使用Qt5编写，核心实现为Request请求+Json库解析+Wintoast消息。
 
-为应对B站接口限制，目前查询为20秒/次，因此消息推送可能会有较短延迟。
+为应对B站接口限制，目前查询为5秒/次，因此消息推送可能会有较短延迟（最大延迟1min左右）。
 
 注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
 
@@ -48,6 +50,46 @@
 推送成员直播消息。
 
 ![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/live.png)
+
+
+
+### 自定义查询用户
+
+可以通过自定义程序运行目录下的`member.json`文件设置要查询的用户。
+
+`member.json`的格式如下：
+
+```json
+{
+	"member": [
+		{
+			"uid": 672346917,
+			"nickname": "向晚",
+			"avatar": "ava.jpg"
+		},
+		...
+		{
+			"uid": 703007996,
+			"nickname": "A-SOUL Official",
+			"avatar": "official.jpg"
+		}
+	]
+}
+```
+
+修改`member`字段对应的数组，成员的数据格式如下：
+
+```json
+{
+    "uid": ,		// 用户UID
+    "nickname": ,	// 可以自己设置一个昵称
+    "avatar": 		// 设置头像文件
+}
+```
+
+成员数据所有字段都不可为空。
+
+用户头像可添加到程序运行目录下的`avatar`目录内。
 
 
 
