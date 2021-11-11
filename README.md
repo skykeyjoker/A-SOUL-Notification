@@ -111,3 +111,4 @@ Qt自带的JSON库，谁用谁后悔！抓到数据后解析JSON，发现解析�
 
 [Typora主题：Typora-theme-jiaran](https://github.com/q19980722/Typora-theme-jiaran)
 
+[IDEA插件：A-SOUL鼓励师](https://github.com/cnsky1103/A-SOUL-Reminder)
