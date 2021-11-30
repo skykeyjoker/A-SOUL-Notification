@@ -14,7 +14,7 @@ BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStrin
 
 void BiliBiliMessage::startQuery()
 {
-	/* 3/min查询 */
+	/* 5s/次查询 */
 	qDebug() << "Start one query.";
 	m_logger->info("哔哩哔哩查询模块开始查询。");
 
@@ -22,7 +22,7 @@ void BiliBiliMessage::startQuery()
 	{
 		m_logger->info("哔哩哔哩查询模块开始一次查询。");
 		m_logger->info("开始查询动态。");
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < m_uidList.size(); ++i)
 		{
 			//QString url = QString(BMURLPREFIX) + ASOULUID[i];
 			QString url = QString(BMURLPREFIX) + m_uidList[i];
@@ -55,7 +55,7 @@ void BiliBiliMessage::startQuery()
 		}
 
 		m_logger->info("开始查询直播。");
-		for (int i = 0; i < 6; ++i)
+		for (int i = 0; i < m_uidList.size(); ++i)
 		{
 			//QString url = QString(BLURLPREFIX) + ASOULUID[i];
 			QString url = QString(BLURLPREFIX) + m_uidList[i];

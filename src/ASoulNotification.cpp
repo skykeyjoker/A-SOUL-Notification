@@ -19,6 +19,7 @@
 
 using namespace WinToastLib;
 
+const QString VERSION = "1.4.1";
 
 class CustomHandler : public IWinToastHandler {
 public:
@@ -172,11 +173,11 @@ int main(int argc, char* argv[])
 
     /* 初始化应用信息 */
     app.setApplicationName("A-SOUL Notification");
-    app.setApplicationVersion("1.4.0");
+    app.setApplicationVersion(VERSION);
     /* init wintoast */
     WinToast::instance()->setAppName(L"A-SOUL Notification");
     WinToast::instance()->setAppUserModelId(
-        WinToast::configureAUMI(L"Skykey", L"A-SOUL Notification", L"A-SOUL Notification", L"1.4.0"));
+        WinToast::configureAUMI(L"Skykey", L"A-SOUL Notification", L"A-SOUL Notification", VERSION.toStdWString()));
     if (!WinToast::instance()->initialize()) {
         qDebug() << "Error, your system in not compatible!";
         main_logger->error("系统不支持WinToast！");

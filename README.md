@@ -9,6 +9,8 @@
 
 注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
 
+[功能介绍](#功能介绍)|[使用教程](#使用教程)|[下载地址](#下载地址)|[友情链接](#友情链接)
+
 ## 功能介绍
 
 ### 启动提醒
@@ -90,6 +92,34 @@
 成员数据所有字段都不可为空。
 
 用户头像可添加到程序运行目录下的`avatar`目录内。
+
+
+
+## 使用教程
+
+1. 下载本项目压缩包并解压，[下载地址](#下载地址)。
+
+2. 运行目录内的ASoulNotification.exe可执行文件，即可运行插件。
+
+3. 本插件为控制台程序，无界面无托盘图标。可以使用任务管理器（Ctrl+Alt+Del快捷键调出）查看ASoulNotification.exe进程检查插件运行状态。
+
+   ![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/task.jpg)
+
+4. 可以将本程序添加到系统自启动列表中，让本程序随系统启动。添加自启动教程：http://www.xitongtang.com/class/win11/27800.html
+
+5. 可编辑目录下member.json文件自定义要监控的B站账号，member.json格式介绍可见上文。
+
+6. 可以在插件目录下的logs文件夹内log.txt查看插件的本次运行记录（每次启动插件都会清空上次插件的运行记录）。
+
+
+
+## 下载地址
+
+本项目提供两种下载方式：Github Release（更新最快）和蓝奏云同步节点（更新可能有延迟）
+
+[Github Release](https://github.com/skykeyjoker/A-SOUL-Notification/releases)：更新最快。
+
+[蓝奏云](https://www.lanzouw.com/b02uir28d)：密码：9r25 国内备份节点，国内下载体验更好一些，更新可能有延迟。
 
 
 
