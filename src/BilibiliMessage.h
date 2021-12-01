@@ -39,6 +39,7 @@ private:
 	int currentLive;
 	std::shared_ptr<spdlog::logger>& m_logger;
 	QStringList m_uidList;
+	//int errCnt = 0;
 };
 
 

@@ -11,6 +11,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QTimer>
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/basic_file_sink.h>
 #include <chrono>
@@ -19,7 +20,9 @@
 
 using namespace WinToastLib;
 
-const QString VERSION = "1.4.1";
+const QString VERSION = "1.5.0";
+
+static int errCount = 0;
 
 class CustomHandler : public IWinToastHandler {
 public:
@@ -114,7 +117,7 @@ QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger> &
                 }
 
                 qDebug() << remoteUrl << remoteVersion<< QString("v" + version);
-                logger->info("Romote Version: {}, Remote Url: {}", version.toStdString(), remoteUrl.toStdString());
+                logger->info("Romote Version: {}, Remote Url: {}", remoteVersion.toStdString(), remoteUrl.toStdString());
                 if (QString("v" + version).compare(remoteVersion) != 0) // 本地版本与远程版本不同
                 {
                     retUrlStr = remoteUrl;
@@ -126,8 +129,6 @@ QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger> &
 
     return retUrlStr;
 }
-
-
 
 int main(int argc, char* argv[])
 {
@@ -274,6 +275,7 @@ int main(int argc, char* argv[])
 
 	BiliBiliMessage bilibiliMessager(main_logger, uid_list);
 
+    // 直播消息提醒
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::newBilibiliLive, [&](int user, const QString title, const QString url)
         {
             main_logger->info("新直播消息信号，启动直播提醒Wintoast。成员：{}，标题：{}，网址：{}", user, title.toStdString(), url.toStdString());
@@ -301,6 +303,8 @@ int main(int argc, char* argv[])
                 main_logger->error("直播提醒WinToast启动失败！");
             }
         });
+
+    // 动态消息提醒
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::newBilibiliMessage, [&](int user, int type, const QString dynamic_id_str)
         {
             main_logger->info("新动态消息信号，启动动态提醒Wintoast。成员：{}，类型：{}，动态id：{}", user, type, dynamic_id_str.toStdString());
@@ -341,23 +345,83 @@ int main(int argc, char* argv[])
                 main_logger->error("动态提醒WinToast启动失败！");
             }
         });
+
+    // 错误提醒
     QObject::connect(&bilibiliMessager, &BiliBiliMessage::errorOccurred, [&](const QString errorString)
         {
             qDebug() << "Error Occurred Signal...";
-            main_logger->info("新错误信号，启动错误提醒Wintoast。错误信息：{}", errorString.toStdString());
-            WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
-            QString imagePath = app.applicationDirPath() + "/avatar/error.png";
-            templ.setImagePath(imagePath.toStdWString());
-            templ.setTextField(L"插件发生错误", WinToastTemplate::FirstLine);
-            templ.setTextField(errorString.toStdWString(), WinToastTemplate::SecondLine);
-            templ.setExpiration(0);
-            templ.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
-            templ.setAudioOption(WinToastTemplate::AudioOption::Default);
+            errCount++;
+            qDebug() << errCount;
 
-            if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
-                //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
-                qDebug() << "Could not launch your toast notification!";
-                main_logger->error("错误提醒WinToast启动失败！");
+            if (errCount < 3)
+            {
+                main_logger->error("新错误信号，启动错误提醒Wintoast。错误信息：{}", errorString.toStdString());
+                WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
+                QString imagePath = app.applicationDirPath() + "/avatar/error.png";
+                templ.setImagePath(imagePath.toStdWString());
+                templ.setTextField(L"插件发生错误", WinToastTemplate::FirstLine);
+                templ.setTextField(errorString.toStdWString(), WinToastTemplate::SecondLine);
+                templ.setExpiration(0);
+                templ.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
+                templ.setAudioOption(WinToastTemplate::AudioOption::Default);
+
+                if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
+                    //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
+                    qDebug() << "Could not launch your toast notification!";
+                    main_logger->error("错误提醒WinToast启动失败！");
+                }
+            }
+            else if (errCount == 3)
+            {
+                // 错误次数达到3次及以上，停止发送错误卡片
+                qDebug()<< "错误信号数已达到3次，停止发送错误提醒。";
+                main_logger->error("错误信号数已达到3次，停止发送错误提醒。");
+                WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
+                QString imagePath = app.applicationDirPath() + "/avatar/error.png";
+                templ.setImagePath(imagePath.toStdWString());
+                templ.setTextField(L"插件发生错误", WinToastTemplate::FirstLine);
+                templ.setTextField(L"插件错误达到3次，停止错误提醒。\n10分钟后错误提醒计数会自动归零，此后错误提醒会正常发送。", WinToastTemplate::SecondLine);
+                templ.setExpiration(0);
+                templ.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
+                templ.setAudioOption(WinToastTemplate::AudioOption::Default);
+
+                if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
+                    //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
+                    qDebug() << "Could not launch your toast notification!";
+                    main_logger->error("错误提醒WinToast启动失败！");
+                }
+
+                qDebug() << "错误信号数清零计时开始"; 
+                main_logger->info("错误信号数清零计时开始");
+                QTimer::singleShot(600000, [&]() {
+                    qDebug() << "错误信号数清零计时达10分钟";
+                    main_logger->info("错误信号数清零计时达10分钟");
+                    errCount = 0;
+                });
+
+            }
+            else if (errCount >= 6)
+            {
+                // 错误次数达到6次及以上，退出程序
+                qDebug() << "错误信号数已达到6次及以上，发送错误提醒并退出程序。";
+                main_logger->error("错误信号数已达到6次及以上，发送错误提醒并退出程序。");
+                main_logger->flush();
+                WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
+                QString imagePath = app.applicationDirPath() + "/avatar/exit.png";
+                templ.setImagePath(imagePath.toStdWString());
+                templ.setTextField(L"插件发生错误", WinToastTemplate::FirstLine);
+                templ.setTextField(L"插件错误达到6次，插件已退出。", WinToastTemplate::SecondLine);
+                templ.setExpiration(0);
+                templ.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
+                templ.setAudioOption(WinToastTemplate::AudioOption::Default);
+
+                if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
+                    //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
+                    qDebug() << "Could not launch your toast notification!";
+                    main_logger->error("错误提醒WinToast启动失败！");
+                }
+
+                exit(1);
             }
         });
 
