@@ -1,4 +1,19 @@
 # A-SOUL Notification
+<p align="center">
+    <a href="https://github.com/skykeyjoker/A-SOUL-Notification/stargazers" style="text-decoration:none">
+        <img src="https://img.shields.io/github/stars/skykeyjoker/A-SOUL-Notification.svg" alt="GitHub stars"/>
+    </a>
+    <a href="https://github.com/skykeyjoker/A-SOUL-Notification/network" style="text-decoration:none" >
+        <img src="https://img.shields.io/github/forks/skykeyjoker/A-SOUL-Notification.svg" alt="GitHub forks"/>
+    </a>
+    <a href="https://github.com/skykeyjoker/A-SOUL-Notification/releases" style="text-decoration:none" >
+        <img src="https://img.shields.io/github/downloads/skykeyjoker/A-SOUL-Notification/latest/total.svg" alt="GitHub release download"/>
+    </a>
+    <a href="https://github.com/skykeyjoker/A-SOUL-Notification/blob/master/LICENSE" style="text-decoration:none" >
+        <img src="https://img.shields.io/badge/License-MIT-flat.svg" alt="GitHub license"/>
+    </a>
+</p>
+
 一个A-SOUL成员动态/直播提醒插件，仅能在Windows10-Windows11系统上运行。
 
 * 注：现在已经实现自定义用户查询，可以编辑`member.json`文件设置想要查询的用户。
