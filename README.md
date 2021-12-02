@@ -1,4 +1,4 @@
-<h1 align="center">哔哩哔哩-API收集整理</h1>
+<h1 align="center">A-SOUL Notification</h1>
 
 <p align="center">
     <a href="https://github.com/skykeyjoker/A-SOUL-Notification/stargazers" style="text-decoration:none">
