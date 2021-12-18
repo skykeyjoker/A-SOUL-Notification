@@ -1,13 +1,22 @@
 ﻿#include "BilibiliMessage.h"
 
-BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList uidList, QObject* parent) :
+BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList &uidList, QObject* parent) :
 	m_uidList(uidList),
 	m_logger(logger),
 	QObject(parent)
 {
 	qDebug() << "BilibiliMessage Starting...";
 	m_logger->info("哔哩哔哩查询模块初始化。");
-	currentLive = -1;
+
+	// 初始化Time Out
+	if(uidList.size()!=6)  // 仅当用户自定义查询用户后（数量改变）更改time out
+		m_timeOut = 60 / uidList.size() >= 5 ? (60 / uidList.size() >= 20 ? 20 : 60 / uidList.size()) : 5;  // 最短查询间隔为5s，最长为20s
+	qDebug() << "Time out:" << m_timeOut;
+
+	// 初始化livestatusmap
+	for (size_t i = 0; i < uidList.size(); ++i)
+		m_liveStatusMap[uidList[i].toInt()] = 0;
+
 	qDebug() << "BilibiliMessage Started.";
 	m_logger->info("哔哩哔哩查询模块初始化成功。");
 }
@@ -24,51 +33,65 @@ void BiliBiliMessage::startQuery()
 		m_logger->info("开始查询动态。");
 		for (int i = 0; i < m_uidList.size(); ++i)
 		{
-			//QString url = QString(BMURLPREFIX) + ASOULUID[i];
 			QString url = QString(BMURLPREFIX) + m_uidList[i];
-			BilibiliMessageCard card = messageQuery(url);
-			if (!card.is_null)
+			BiliBiliMessageRes res = messageQuery(url);  // 查询一组动态
+			if (!res.empty())
 			{
-				if (!oldMessageCardMap.contains(card.uid))
+				// 判断当前是否为首次查询
+				if(!m_oldMessageCardMap.contains(res[0].uid))
 				{
-					oldMessageCardMap.insert(card.uid, card);
+					// 首次查询，填充oldMessageCardMap
+					QSet<QString> messageSet;
+					for(size_t i=0;i<res.size();++i)
+					{
+						messageSet.insert(res[i].dynamic_id_str);
+					}
+					m_oldMessageCardMap.insert(res[0].uid,messageSet);
+
+					qDebug() << messageSet.size() << messageSet;
 				}
 				else
 				{
-					if (oldMessageCardMap[card.uid].dynamic_id_str.compare(card.dynamic_id_str) != 0)
+					// 非首次查询
+					for (size_t i = 0; i < res.size(); ++i) // 遍历每条动态
 					{
-						// 更新
-						oldMessageCardMap.insert(card.uid, card);
-						emit newBilibiliMessage(card.uid, card.type, card.dynamic_id_str);
+						const auto& currentMessageCard = res[i];
+						if (!m_oldMessageCardMap[currentMessageCard.uid].contains(currentMessageCard.dynamic_id_str))
+						{
+							// 新动态
+							m_oldMessageCardMap[currentMessageCard.uid].insert(currentMessageCard.dynamic_id_str);  // 更新oldMessageMap
+							emit newBilibiliMessage(currentMessageCard.uid, currentMessageCard.type, currentMessageCard.dynamic_id_str); // 发送新动态消息
+
+							qDebug() << m_oldMessageCardMap[currentMessageCard.uid].size()<< m_oldMessageCardMap[currentMessageCard.uid].size();
+						}
 					}
 				}
 			}
 			else
 			{
-				QString errorString = "查询成员动态时发生错误，返回了空的消息卡片！";
-				m_logger->error("查询成员动态时发生错误，返回了空的消息卡片！");
+				QString errorString = "查询成员动态时发生错误，返回了空的消息卡片组！";
+				m_logger->error("查询成员动态时发生错误，返回了空的消息卡片组！");
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(5);
+			QThread::sleep(m_timeOut);
 
 		}
 
 		m_logger->info("开始查询直播。");
 		for (int i = 0; i < m_uidList.size(); ++i)
 		{
-			//QString url = QString(BLURLPREFIX) + ASOULUID[i];
 			QString url = QString(BLURLPREFIX) + m_uidList[i];
 			BilibiliLiveCard card = liveQuery(url);
 			if (!card.is_null)
 			{
-				if (card.status == 1)
+				if(card.status!=m_liveStatusMap[card.mid])
 				{
-					if (currentLive != card.mid)
-					{
-						currentLive = card.mid;
+					// 与历史状态不同
+					if(card.status==1) // 正在直播
 						emit newBilibiliLive(card.mid, card.title, card.url);
-					}
+
+					m_liveStatusMap[card.mid] = card.status; // 更新liveStatusMap
 				}
 			}
 			else
@@ -78,9 +101,9 @@ void BiliBiliMessage::startQuery()
 				emit errorOccurred(errorString);
 			}
 			// 延时
-			QThread::sleep(5);
+			QThread::sleep(m_timeOut);
 		}
-		QThread::sleep(5);
+		QThread::sleep(m_timeOut);
 		//errCnt += 2;
 		//if (errCnt < 6)
 		//{
@@ -99,10 +122,10 @@ void BiliBiliMessage::startQuery()
 	}
 }
 
-BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
+BiliBiliMessageRes BiliBiliMessage::messageQuery(const QString& url)
 {
-	BilibiliMessageCard ret;
-	ret.is_null = true;
+	BiliBiliMessageRes res;
+	//ret.is_null = true;
 
 	Json doc = getJson(url);
 	if (doc.is_null())
@@ -111,42 +134,63 @@ BilibiliMessageCard BiliBiliMessage::messageQuery(const QString& url)
 		QString errorString = "查询成员动态时发生错误，获取的JSON值为空！";
 		m_logger->error("查询成员动态时发生错误，获取的JSON值为空！");
 		//emit errorOccurred(errorString);
-		return ret;
+		return res;
 	}
 
 	/* []操作符理应有异常机制，对异常机制进行处理
 	 * JSON_THROW(std::out_of_range("key not found"));
 	 */
-	int uid;
-	int type;
-	QString dynamic_id_str;
-	QString nickname;
-	try
+
+	if(doc.contains("data")&&doc["data"].contains("cards"))
 	{
-		uid = doc["data"]["cards"][0]["desc"]["uid"].get<int>();
-		type = doc["data"]["cards"][0]["desc"]["type"].get<int>();
-		dynamic_id_str = QString::fromStdString(doc["data"]["cards"][0]["desc"]["dynamic_id_str"].get<std::string>());
-		nickname = QString::fromStdString(doc["data"]["cards"][0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
+		Json cardArr = doc["data"]["cards"];
+		int uid = cardArr[0]["desc"]["uid"].get<int>();
+		QString nickname = QString::fromStdString(cardArr[0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
+		int type;
+		QString dynamic_id_str;
+
+		qDebug() << tr("Start query %1 %2's message card.").arg(QString::number(uid)).arg(nickname);
+		m_logger->info("开始查询用户UID：{}，昵称：{}的一组动态：",uid,nickname.toStdString());
+		for(size_t i=0;i<cardArr.size();++i)
+		{
+			Json currentCardJson = cardArr[i];
+			BilibiliMessageCard currentMessageCard;
+
+			try
+			{
+				type = currentCardJson["desc"]["type"].get<int>();
+				dynamic_id_str = QString::fromStdString(currentCardJson["desc"]["dynamic_id_str"].get<std::string>());
+
+				currentMessageCard.uid = uid;
+				currentMessageCard.type = type;
+				currentMessageCard.dynamic_id_str = dynamic_id_str;
+				currentMessageCard.nickname = nickname;
+
+				qDebug() << "Message Query: " << currentMessageCard.uid << currentMessageCard.nickname << currentMessageCard.type << currentMessageCard.dynamic_id_str;
+				m_logger->info("动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", currentMessageCard.uid, currentMessageCard.nickname.toStdString(), currentMessageCard.type, currentMessageCard.dynamic_id_str.toStdString());
+
+				res.push_back(currentMessageCard);
+			}
+			catch (...)
+			{
+				qDebug() << "Message Query Error. Reason: The json can not be parsed";
+				QString errorString = "查询成员动态时发生错误，未能解析获取的JSON！";
+				m_logger->error("查询成员动态时发生错误，未能解析获取的JSON！");
+				//emit errorOccurred(errorString);
+				return res;
+			}
+		}
 	}
-	catch (...)
+	else
 	{
 		qDebug() << "Message Query Error. Reason: The json can not be parsed";
 		QString errorString = "查询成员动态时发生错误，未能解析获取的JSON！";
 		m_logger->error("查询成员动态时发生错误，未能解析获取的JSON！");
 		//emit errorOccurred(errorString);
-		return ret;
+		return res;
 	}
 
-	ret.uid = uid;
-	ret.type = type;
-	ret.dynamic_id_str = dynamic_id_str;
-	ret.nickname = nickname;
-	ret.is_null = false;
-
-	qDebug() << "Message Query: " << ret.uid << ret.nickname << ret.type  << ret.dynamic_id_str;
-	m_logger->info("动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", ret.uid, ret.nickname.toStdString(), ret.type, ret.dynamic_id_str.toStdString());
-
-	return ret;
+	return res;
 }
 
 BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)

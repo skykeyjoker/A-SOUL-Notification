@@ -16,12 +16,13 @@
 #include <spdlog/sinks/basic_file_sink.h>
 
 using Json = nlohmann::json;
+using BiliBiliMessageRes=QVector<BilibiliMessageCard>;
 
 class BiliBiliMessage: public QObject
 {
 	Q_OBJECT
 public:
-	BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList uidList, QObject* parent = nullptr);
+	BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList &uidList, QObject* parent = nullptr);
 	void startQuery();
 
 signals:
@@ -30,16 +31,16 @@ signals:
 	void errorOccurred(const QString errorString);
 
 private:
-	BilibiliMessageCard messageQuery(const QString& url);
+	BiliBiliMessageRes messageQuery(const QString& url);  // 每次查询返回一组动态
 	BilibiliLiveCard liveQuery(const QString& url);
 	Json getJson(const QString& url);
 
 private:
-	QMap<int, BilibiliMessageCard> oldMessageCardMap;
-	int currentLive;
+	QMap<int, QSet<QString>> m_oldMessageCardMap; // 每名用户对应一组旧动态
+	QMap<int, int> m_liveStatusMap;  // 每名用户对应一个直播状态
 	std::shared_ptr<spdlog::logger>& m_logger;
-	QStringList m_uidList;
-	//int errCnt = 0;
+	QStringList &m_uidList;
+	int m_timeOut=5;
 };
 
 

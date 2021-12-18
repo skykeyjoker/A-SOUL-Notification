@@ -13,7 +13,6 @@ typedef struct BilibiliMessageCard
 	QString dynamic_id_str;
 	int uid;
 	int type;
-	bool is_null;
 }BilibiliMessageCard;
 
 typedef struct BilibiliLiveCard

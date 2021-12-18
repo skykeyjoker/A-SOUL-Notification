@@ -20,7 +20,7 @@
 
 using namespace WinToastLib;
 
-const QString VERSION = "1.5.0";
+const QString VERSION = "2.0.0";
 
 static int errCount = 0;
 
