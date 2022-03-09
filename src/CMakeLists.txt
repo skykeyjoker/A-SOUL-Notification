@@ -10,11 +10,12 @@ add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 project ("ASoulNotification")
 
 find_package(Qt5 COMPONENTS Core Network)
+find_package(spdlog CONFIG REQUIRED)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd)
 
 set(APP_ICON_RESOURCE_WINDOWS "${CMAKE_CURRENT_SOURCE_DIR}/logo.rc")
 
 add_executable (ASoulNotification ${APP_ICON_RESOURCE_WINDOWS} "ASoulNotification.cpp"  "BilibiliMessage.h" "BilibiliMessage.cpp" "Essential.h" "3rd/json.hpp" "3rd/wintoastlib.h" "3rd/wintoastlib.cpp")
 
-target_link_libraries(ASoulNotification Qt5::Core Qt5::Network)
+target_link_libraries(ASoulNotification Qt5::Core Qt5::Network spdlog_header_only)
 

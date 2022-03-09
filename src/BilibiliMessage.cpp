@@ -223,6 +223,8 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url)
 		title = QString::fromStdString(doc["data"]["live_room"]["title"].get<std::string>());
 		nickname = QString::fromStdString(doc["data"]["name"].get<std::string>());
 		liveurl = QString::fromStdString(doc["data"]["live_room"]["url"].get<std::string>());
+		// Fuck You Bilibili, live room url TRAITS https://live.bilibili.com/22625027?broadcast_type=0\u0026is_room_feed=1
+		liveurl = liveurl.mid(0, liveurl.indexOf('?')); 
 	}
 	catch (...)
 	{
