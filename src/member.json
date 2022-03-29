@@ -1,34 +1,46 @@
 {
-	"member": [
-		{
-			"uid": 672346917,
-			"nickname": "向晚",
-			"avatar": "ava.jpg"
-		},
-		{
-			"uid": 672353429,
-			"nickname": "贝拉",
-			"avatar": "bella.jpg"
-		},
-		{
-			"uid": 351609538,
-			"nickname": "珈乐",
-			"avatar": "carol.jpg"
-		},
-		{
-			"uid": 672328094,
-			"nickname": "嘉然",
-			"avatar": "diana.jpg"
-		},
-		{
-			"uid": 672342685,
-			"nickname": "乃琳",
-			"avatar": "eileen.jpg"
-		},
-		{
-			"uid": 703007996,
-			"nickname": "A-SOUL Official",
-			"avatar": "official.jpg"
-		}
-	]
+  "Bilibili": {
+    "member": [
+      {
+        "uid": 672346917,
+        "nickname": "向晚",
+        "avatar": "ava.jpg"
+      },
+      {
+        "uid": 672353429,
+        "nickname": "贝拉",
+        "avatar": "bella.jpg"
+      },
+      {
+        "uid": 351609538,
+        "nickname": "珈乐",
+        "avatar": "carol.jpg"
+      },
+      {
+        "uid": 672328094,
+        "nickname": "嘉然",
+        "avatar": "diana.jpg"
+      },
+      {
+        "uid": 672342685,
+        "nickname": "乃琳",
+        "avatar": "eileen.jpg"
+      },
+      {
+        "uid": 703007996,
+        "nickname": "A-SOUL Official",
+        "avatar": "official.jpg"
+      }
+    ]
+  },
+  "Douyin": {
+    "member": [
+      {
+        "uid": "ASOULofficial",
+        "sec_uid": "MS4wLjABAAAAflgvVQ5O1K4RfgUu3k0A2erAZSK7RsdiqPAvxcObn93x2vk4SKk1eUb6l_D4MX-n",
+        "nickname": "五个魂儿呀",
+        "avatar": "ASOULofficial.jpg"
+      }
+    ]
+  }
 }
