@@ -15,13 +15,13 @@
     </a>
 </p>
 
-一个A-SOUL成员动态/直播提醒插件，仅能在Windows10-Windows11系统上运行。
+一个A-SOUL成员动态/直播提醒插件，支持监控B站与抖音。仅能在Windows10-Windows11系统上运行。
 
 * 注：现在已经实现自定义用户查询，可以编辑`member.json`文件设置想要查询的用户。
 
 使用Qt5编写，核心实现为Request请求+Json库解析+Wintoast消息。
 
-为应对B站接口限制，目前查询为5秒/次，因此消息推送可能会有较短延迟（最大延迟1min左右）。
+为应对B站接口限制，目前查询为30秒/次，因此消息推送可能会有较短延迟（最大延迟1min左右）。
 
 注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
 
@@ -57,11 +57,15 @@
 
 ### 成员动态提醒
 
-推送成员动态（动态，专栏，视频）。
+推送成员的动态（动态，专栏，视频）。
+
+默认开启抖音动态监控，可在设置文件`member.json`中手动关闭。
 
 ![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/dy1.png)
 
 ![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/dy2.png)
+
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/Douyin.jpg)
 
 
 
@@ -81,23 +85,36 @@
 
 ```json
 {
-	"member": [
-		{
-			"uid": 672346917,
-			"nickname": "向晚",
-			"avatar": "ava.jpg"
-		},
-		...
-		{
-			"uid": 703007996,
-			"nickname": "A-SOUL Official",
-			"avatar": "official.jpg"
-		}
-	]
+  "Bilibili": {
+    "member": [
+      {
+        "uid": 672346917,
+        "nickname": "向晚",
+        "avatar": "ava.jpg"
+      },
+		......
+      {
+        "uid": 703007996,
+        "nickname": "A-SOUL Official",
+        "avatar": "official.jpg"
+      }
+    ]
+  },
+  "Douyin": {
+    "enable": true,
+    "member": [
+      {
+        "uid": "ASOULofficial",
+        "sec_uid": "MS4wLjABAAAAflgvVQ5O1K4RfgUu3k0A2erAZSK7RsdiqPAvxcObn93x2vk4SKk1eUb6l_D4MX-n",
+        "nickname": "五个魂儿呀",
+        "avatar": "ASOULofficial.jpg"
+      }
+    ]
+  }
 }
 ```
 
-修改`member`字段对应的数组，成员的数据格式如下：
+修改`member`字段对应的数组，B站成员的数据格式如下：
 
 ```json
 {
@@ -107,9 +124,32 @@
 }
 ```
 
+抖音成员的数据格式如下：
+
+```json
+{
+	"uid": ,  		// 抖音用户uid
+	"sec_uid": ,  	// 抖音用户sec_uid
+	"nickname": ,  	// 可以自己设置一个昵称
+	"avatar":   	// 设置头像文件
+}
+```
+
 成员数据所有字段都不可为空。
 
 用户头像可添加到程序运行目录下的`avatar`目录内。
+
+若要关闭抖音监控功能，可以将`Douyin`字段中的`enable`设置为`false`：
+
+```json
+{
+    ......
+	"Douyin":{
+		"enable": false,
+	    ......
+	}
+}
+```
 
 
 
@@ -125,7 +165,7 @@
 
 4. 可以将本程序添加到系统自启动列表中，让本程序随系统启动。添加自启动教程：http://www.xitongtang.com/class/win11/27800.html
 
-5. 可编辑目录下member.json文件自定义要监控的B站账号，member.json格式介绍可见上文。
+5. 可编辑目录下member.json文件自定义要监控的B站和抖音账号或关闭抖音监控，member.json格式介绍见上文。
 
 6. 可以在插件目录下的logs文件夹内log.txt查看插件的本次运行记录（每次启动插件都会清空上次插件的运行记录）。
 
