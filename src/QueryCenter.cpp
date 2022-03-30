@@ -15,32 +15,34 @@ QueryCenter::QueryCenter(std::shared_ptr<spdlog::logger>& logger,
         m_errCountArr[i] = 0;
     }
 
+    if (!douyinMemberMap.isEmpty())
+        m_enableDouyin = true;
+
     // 初始化查询进程
     m_bilibiliThread = new QThread;
     m_biliBiliMessage = new BiliBiliMessage(m_logger, uidList);
     m_biliBiliMessage->moveToThread(m_bilibiliThread);
-
-    m_douyinThread = new QThread;
-    m_douyinMessage = new DouyinMessage(m_logger, secIdList);
-    m_douyinMessage->moveToThread(m_douyinThread);
-
     connect(m_bilibiliThread, &QThread::started, m_biliBiliMessage, &BiliBiliMessage::startQuery);
     connect(m_bilibiliThread, &QThread::finished, m_biliBiliMessage, &BiliBiliMessage::deleteLater);
-    connect(m_douyinThread, &QThread::started, m_douyinMessage, &DouyinMessage::startQuery);
-    connect(m_douyinThread, &QThread::finished, m_douyinMessage, &DouyinMessage::deleteLater);
 
-    // 绑定新动态/直播信号
     connect(m_biliBiliMessage, &BiliBiliMessage::newBilibiliMessage, this, &QueryCenter::bilibiliDynamicMessageDiscontributor);
     connect(m_biliBiliMessage, &BiliBiliMessage::newBilibiliLive, this, &QueryCenter::bilibiliLiveMessageDiscontributor);
-    connect(m_douyinMessage, &DouyinMessage::newDouyinDynamic, this, &QueryCenter::douyinDynamicMessageDiscontributor);
-
-    // 绑定错误信号
     connect(m_biliBiliMessage, &BiliBiliMessage::errorOccurred, this, [this](QString error) {
         errorMessageDiscontributor(0, error);
     });
-    connect(m_douyinMessage, &DouyinMessage::errorOccurred, this, [this](QString error) {
-        errorMessageDiscontributor(1, error);
-    });
+
+    if (m_enableDouyin) {
+        m_douyinThread = new QThread;
+        m_douyinMessage = new DouyinMessage(m_logger, secIdList);
+        m_douyinMessage->moveToThread(m_douyinThread);
+        connect(m_douyinThread, &QThread::started, m_douyinMessage, &DouyinMessage::startQuery);
+        connect(m_douyinThread, &QThread::finished, m_douyinMessage, &DouyinMessage::deleteLater);
+
+        connect(m_douyinMessage, &DouyinMessage::newDouyinDynamic, this, &QueryCenter::douyinDynamicMessageDiscontributor);
+        connect(m_douyinMessage, &DouyinMessage::errorOccurred, this, [this](QString error) {
+            errorMessageDiscontributor(1, error);
+        });
+    }
 }
 
 QueryCenter::~QueryCenter() {
@@ -49,7 +51,9 @@ QueryCenter::~QueryCenter() {
 void QueryCenter::startQuery() {
     // 启动查询进程
     m_bilibiliThread->start();
-    m_douyinThread->start();
+    if (m_enableDouyin) {
+        m_douyinThread->start();
+    }
 }
 
 void QueryCenter::bilibiliDynamicMessageDiscontributor(int uid, int type, const QString dynamic_id_str) {

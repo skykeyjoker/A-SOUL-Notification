@@ -49,6 +49,8 @@ private:
 
     QString m_dirPrefix;
 
+    bool m_enableDouyin{false};
+
     const BiliBiliMemberMap& m_biliBiliMemberMap;
     const DouyinMemberMap& m_douyinMemberMap;
 

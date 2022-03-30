@@ -205,8 +205,8 @@ int main(int argc, char* argv[]) {
     QFile m_file("member.json");
     BiliBiliMemberMap bilibiliMemberMap;
     DouyinMemberMap douyinMemberMap;
-    UidList uid_list;
-    SecUidList sec_uid_list;
+    UidList uid_list{};
+    SecUidList sec_uid_list{};
     if (m_file.open(QFile::ReadOnly)) {
         Json m_json;
         QByteArray buf = m_file.readAll();
@@ -240,19 +240,22 @@ int main(int argc, char* argv[]) {
                 qDebug() << uid << nickName << avatar;
             }
 
-            auto douyinArr = m_json["Douyin"]["member"];
-            for (int i = 0; i < douyinArr.size(); ++i) {
-                QString uid = QString::fromStdString(douyinArr[i]["uid"].get<std::string>());
-                QString sec_uid = QString::fromStdString(douyinArr[i]["sec_uid"].get<std::string>());
-                QString nickName = QString::fromStdString(douyinArr[i]["nickname"].get<std::string>());
-                QString avatar = QString::fromStdString(douyinArr[i]["avatar"].get<std::string>());
-                sec_uid_list << sec_uid;
-                douyinMemberMap[uid]["nickname"] = nickName;
-                douyinMemberMap[uid]["avatar"] = avatar;
-                qDebug() << uid << sec_uid << nickName << avatar;
+            auto enableDouyin = m_json["Douyin"]["enable"].get<bool>();
+            if (enableDouyin) {
+                auto douyinArr = m_json["Douyin"]["member"];
+                for (int i = 0; i < douyinArr.size(); ++i) {
+                    QString uid = QString::fromStdString(douyinArr[i]["uid"].get<std::string>());
+                    QString sec_uid = QString::fromStdString(douyinArr[i]["sec_uid"].get<std::string>());
+                    QString nickName = QString::fromStdString(douyinArr[i]["nickname"].get<std::string>());
+                    QString avatar = QString::fromStdString(douyinArr[i]["avatar"].get<std::string>());
+                    sec_uid_list << sec_uid;
+                    douyinMemberMap[uid]["nickname"] = nickName;
+                    douyinMemberMap[uid]["avatar"] = avatar;
+                    qDebug() << uid << sec_uid << nickName << avatar;
+                }
             }
 
-            main_logger->info("Member Json loaded successfully.");
+            main_logger->info("Member Json loaded successfully. Douyin Mode:{}", enableDouyin);
         }
     } else {
         qDebug() << "Member json can not be opened.";
