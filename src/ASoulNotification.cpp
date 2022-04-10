@@ -96,6 +96,10 @@ QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger>& 
                 try {
                     remoteVersion = QString::fromStdString(j["versions"][0]["version"].get<std::string>());
                     remoteUrl = QString::fromStdString(j["versions"][0]["url"].get<std::string>());
+                } catch (Json::exception& ex) {
+                    qDebug() << "Update info json can not be parsed. Exception occurred:" << ex.what();
+                    logger->error("Update Error. Update info json can not be parsed. Exception Occurred: {}", ex.what());
+                    return retUrlStr;
                 } catch (...) {
                     qDebug() << "Update info json can not be parsed.";
                     logger->error("Update Error. Update info json can not be parsed.");
@@ -103,7 +107,7 @@ QString checkForUpdate(const QString& version, std::shared_ptr<spdlog::logger>& 
                 }
 
                 qDebug() << remoteUrl << remoteVersion << QString("v" + version);
-                logger->info("Romote Version: {}, Remote Url: {}", remoteVersion.toStdString(), remoteUrl.toStdString());
+                logger->info("Remote Version: {}, Remote Url: {}", remoteVersion.toStdString(), remoteUrl.toStdString());
                 if (QString("v" + version).compare(remoteVersion) != 0)// 本地版本与远程版本不同
                 {
                     retUrlStr = remoteUrl;
@@ -228,34 +232,50 @@ int main(int argc, char* argv[]) {
             main_logger->flush();
             exit(1);// 立即退出程序
         } else {
-            // 赋值memberMap
-            auto bilibiliArr = m_json["Bilibili"]["member"];
-            for (int i = 0; i < bilibiliArr.size(); ++i) {
-                int uid = bilibiliArr[i]["uid"].get<int>();
-                QString nickName = QString::fromStdString(bilibiliArr[i]["nickname"].get<std::string>());
-                QString avatar = QString::fromStdString(bilibiliArr[i]["avatar"].get<std::string>());
-                uid_list << QString::number(uid);
-                bilibiliMemberMap[uid]["nickname"] = nickName;
-                bilibiliMemberMap[uid]["avatar"] = avatar;
-                qDebug() << uid << nickName << avatar;
-            }
-
-            auto enableDouyin = m_json["Douyin"]["enable"].get<bool>();
-            if (enableDouyin) {
-                auto douyinArr = m_json["Douyin"]["member"];
-                for (int i = 0; i < douyinArr.size(); ++i) {
-                    QString uid = QString::fromStdString(douyinArr[i]["uid"].get<std::string>());
-                    QString sec_uid = QString::fromStdString(douyinArr[i]["sec_uid"].get<std::string>());
-                    QString nickName = QString::fromStdString(douyinArr[i]["nickname"].get<std::string>());
-                    QString avatar = QString::fromStdString(douyinArr[i]["avatar"].get<std::string>());
-                    sec_uid_list << sec_uid;
-                    douyinMemberMap[uid]["nickname"] = nickName;
-                    douyinMemberMap[uid]["avatar"] = avatar;
-                    qDebug() << uid << sec_uid << nickName << avatar;
+            try {
+                // 赋值memberMap
+                auto bilibiliArr = m_json["Bilibili"]["member"];
+                for (int i = 0; i < bilibiliArr.size(); ++i) {
+                    int uid = bilibiliArr[i]["uid"].get<int>();
+                    QString nickName = QString::fromStdString(bilibiliArr[i]["nickname"].get<std::string>());
+                    QString avatar = QString::fromStdString(bilibiliArr[i]["avatar"].get<std::string>());
+                    uid_list << QString::number(uid);
+                    bilibiliMemberMap[uid]["nickname"] = nickName;
+                    bilibiliMemberMap[uid]["avatar"] = avatar;
+                    qDebug() << uid << nickName << avatar;
                 }
-            }
 
-            main_logger->info("Member Json loaded successfully. Douyin Mode:{}", enableDouyin);
+                auto enableDouyin = m_json["Douyin"]["enable"].get<bool>();
+                if (enableDouyin) {
+                    auto douyinArr = m_json["Douyin"]["member"];
+                    for (int i = 0; i < douyinArr.size(); ++i) {
+                        QString uid = QString::fromStdString(douyinArr[i]["uid"].get<std::string>());
+                        QString sec_uid = QString::fromStdString(douyinArr[i]["sec_uid"].get<std::string>());
+                        QString nickName = QString::fromStdString(douyinArr[i]["nickname"].get<std::string>());
+                        QString avatar = QString::fromStdString(douyinArr[i]["avatar"].get<std::string>());
+                        sec_uid_list << sec_uid;
+                        douyinMemberMap[uid]["nickname"] = nickName;
+                        douyinMemberMap[uid]["avatar"] = avatar;
+                        qDebug() << uid << sec_uid << nickName << avatar;
+                    }
+                }
+
+                main_logger->info("Member Json loaded successfully. Douyin Mode:{}", enableDouyin);
+            } catch (Json::exception& ex) {
+                qDebug() << "解析member.json失败，发生异常" << ex.what();
+                main_logger->error("解析member.json失败，发生异常：{}", ex.what());
+                m_file.close();
+
+                main_logger->flush();
+                exit(1);
+            } catch (...) {
+                qDebug() << "解析member.json失败，发生未知异常";
+                main_logger->error("解析member.json失败，发生未知异常");
+                m_file.close();
+
+                main_logger->flush();
+                exit(1);
+            }
         }
     } else {
         qDebug() << "Member json can not be opened.";
@@ -333,14 +353,14 @@ int main(int argc, char* argv[]) {
         }
     });
 
-    // 错误提醒
-    QObject::connect(&queryCenter, &QueryCenter::newErrorMessage, [&](QString message) {
-        main_logger->error("新错误信号，启动错误提醒Wintoast。错误信息：{}", message.toStdString());
+    // 风控消息提醒
+    QObject::connect(&queryCenter, &QueryCenter::newOverLoadMessage, [&](QString message) {
+        main_logger->error("风控信号，启动风控提醒Wintoast。错误信息：{}", message.toStdString());
 
         WinToastTemplate templ = WinToastTemplate(WinToastTemplate::ImageAndText02);
-        QString imagePath = app.applicationDirPath() + "/avatar/error.png";
+        QString imagePath = app.applicationDirPath() + "/avatar/sleep.png";
         templ.setImagePath(imagePath.toStdWString());
-        templ.setTextField(L"插件发生错误", WinToastTemplate::FirstLine);
+        templ.setTextField(L"检测到服务器风控", WinToastTemplate::FirstLine);
         templ.setTextField(message.toStdWString(), WinToastTemplate::SecondLine);
         templ.setExpiration(0);
         templ.setAudioPath(WinToastTemplate::AudioSystemFile::DefaultSound);
@@ -349,13 +369,8 @@ int main(int argc, char* argv[]) {
         if (WinToast::instance()->showToast(templ, new CustomHandler(0)) < 0) {
             //QMessageBox::warning(this, "Error", "Could not launch your toast notification!");
             qDebug() << "Could not launch your toast notification!";
-            main_logger->error("错误提醒WinToast启动失败！");
+            main_logger->error("风控提醒WinToast启动失败！");
         }
-    });
-    // 出错次数达到6次
-    QObject::connect(&queryCenter, &QueryCenter::sayGoodbye, [&]() {
-        main_logger->flush();
-        exit(1);
     });
 
     queryCenter.startQuery();

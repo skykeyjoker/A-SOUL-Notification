@@ -17,7 +17,7 @@ DouyinMessage::DouyinMessage(std::shared_ptr<spdlog::logger> &logger, QStringLis
 DouyinMessage::~DouyinMessage() {
 }
 
-void DouyinMessage::startQuery() {
+[[noreturn]] void DouyinMessage::startQuery() {
     /* 30s/次查询 */
     qDebug() << "【抖音】Start one query.";
     m_logger->info("【抖音】抖音查询模块开始查询。");
@@ -55,10 +55,6 @@ void DouyinMessage::startQuery() {
                         }
                     }
                 }
-            } else {
-                QString errorString = "【抖音】查询成员动态时发生错误，返回了空的消息卡片组！";
-                m_logger->error("【抖音】查询成员动态时发生错误，返回了空的消息卡片组！");
-                emit errorOccurred(errorString);
             }
             // 延时
             QThread::sleep(1);
@@ -88,9 +84,7 @@ DouyinDynamicRes DouyinMessage::dynamicQuery(const QString &url) {
     Json doc = getJson(url);
     if (doc.is_null()) {
         qDebug() << "【抖音】Message Query Error. Reason: The json is null";
-        QString errorString = "【抖音】查询成员动态时发生错误，获取的JSON值为空！";
         m_logger->error("【抖音】查询成员动态时发生错误，获取的JSON值为空！");
-        //emit errorOccurred(errorString);
         return res;
     }
 
@@ -136,19 +130,19 @@ DouyinDynamicRes DouyinMessage::dynamicQuery(const QString &url) {
                                currentDynamicCard.desc.toStdString());
 
                 res.push_back(currentDynamicCard);
+            } catch (Json::exception &ex) {
+                qDebug() << "【抖音】Message Query Error. Exception occurred when parsing the json. Exception:{}" << ex.what();
+                m_logger->error("【抖音】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
+                return res;
             } catch (...) {
-                qDebug() << "【抖音】Message Query Error. Reason: The json can not be parsed";
-                QString errorString = "【抖音】查询成员动态时发生错误，未能解析获取的JSON！";
-                m_logger->error("【抖音】查询成员动态时发生错误，未能解析获取的JSON！");
-                //emit errorOccurred(errorString);
+                qDebug() << "【抖音】Message Query Error. Unknown exception occurred when parsing the json.";
+                m_logger->error("【抖音】铲鲟成员动态时发生错误，解析获取的JSON时发生未知异常");
                 return res;
             }
         }
     } else {
-        qDebug() << "【抖音】Message Query Error. Reason: The json can not be parsed";
-        QString errorString = "【抖音】查询成员动态时发生错误，未能解析获取的JSON！";
-        m_logger->error("【抖音】查询成员动态时发生错误，未能解析获取的JSON！");
-        //emit errorOccurred(errorString);
+        qDebug() << "【抖音】Message Query Error. Reason: The json can not be parsed. [aweme_list] not exists.";
+        m_logger->error("【抖音】查询成员动态时发生错误，未能解析获取的JSON，[aweme_list]段不存在。");
         return res;
     }
 
@@ -165,10 +159,14 @@ Json DouyinMessage::getJson(const QString &url) {
     eventLoop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "【抖音】Query Error! Reason: request error" << reply->errorString() << url;
-        m_logger->error("【抖音】请求失败，错误类型：{}", reply->errorString().toStdString());
-        QString errorString = "【抖音】请求失败，错误类型：" + reply->errorString();
-        //emit errorOccurred(errorString);
+        qDebug() << "【抖音】Query Error! Reason: request error" << reply->error() << reply->errorString() << url;
+        m_logger->error("【抖音】请求失败，错误类型：{}，{}", (int) reply->error(), reply->errorString().toStdString());
+
+        switch (reply->error()) {
+            default:
+                break;
+        }
+
         reply->deleteLater();
         return j;
     }
@@ -178,8 +176,6 @@ Json DouyinMessage::getJson(const QString &url) {
     if (buf.isNull()) {
         qDebug() << "【抖音】No Data return";
         m_logger->error("【抖音】请求失败，获取了空的返回数据！");
-        QString errorString = "【抖音】请求失败，获取了空的返回数据！";
-        //emit errorOccurred(errorString);
         return j;
     }
 
@@ -187,8 +183,6 @@ Json DouyinMessage::getJson(const QString &url) {
     if (j.is_null()) {
         qDebug() << "【抖音】Parse Json Error!" << url;
         m_logger->error("【抖音】请求失败，未能成功解析JSON！");
-        QString errorString = "【抖音】请求失败，未能成功解析JSON！";
-        //emit errorOccurred(errorString);
         return j;
     }
 
@@ -196,19 +190,19 @@ Json DouyinMessage::getJson(const QString &url) {
     int retCode;
     try {
         retCode = j["status_code"].get<int>();
+    } catch (Json::exception &ex) {
+        qDebug() << "【抖音】Parse Json Error! Can not get the [status_code]. Exception:" << ex.what();
+        m_logger->error("【抖音】请求失败，解析JSON[status_code]时出现异常：{}", ex.what());
+        return Json();// 返回空的JSON
     } catch (...) {
-        qDebug() << "【抖音】Parse Json Error! Can not get the [status_code]";
-        m_logger->error("【抖音】请求失败，解析JSON[status_code]时失败！");
-        QString errorString = "【抖音】请求失败，解析JSON[status_code]时失败！";
-        //emit errorOccurred(errorString);
+        qDebug() << "【抖音】Parse Json Error! Can not get the [status_code]. Unknown Exception.";
+        m_logger->error("【抖音】请求失败，解析JSON[status_code]时出现未知异常。");
         return Json();// 返回空的JSON
     }
 
     if (retCode != 0) {
-        qDebug() << "【抖音】Return Code is not null";
+        qDebug() << "【抖音】Return Code Error" << retCode;
         m_logger->error("【抖音】请求失败，返回状态码：{}", retCode);
-        QString errorString = "【抖音】请求失败，返回状态码：" + QString::number(retCode);
-        //emit errorOccurred(errorString);
         return Json();// 返回空的JSON
     }
 

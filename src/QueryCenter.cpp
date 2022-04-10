@@ -9,11 +9,7 @@ QueryCenter::QueryCenter(std::shared_ptr<spdlog::logger>& logger,
       m_douyinMemberMap(douyinMemberMap),
       QObject(parent) {
     // 初始化成员数据
-    m_dirPrefix = QDir::currentPath() + "/";  // 目录前缀
-    for (int i = 0; i < 2; ++i)  // 初始化错误计数
-    {
-        m_errCountArr[i] = 0;
-    }
+    m_dirPrefix = QDir::currentPath() + "/";// 目录前缀
 
     if (!douyinMemberMap.isEmpty())
         m_enableDouyin = true;
@@ -27,8 +23,10 @@ QueryCenter::QueryCenter(std::shared_ptr<spdlog::logger>& logger,
 
     connect(m_biliBiliMessage, &BiliBiliMessage::newBilibiliMessage, this, &QueryCenter::bilibiliDynamicMessageDiscontributor);
     connect(m_biliBiliMessage, &BiliBiliMessage::newBilibiliLive, this, &QueryCenter::bilibiliLiveMessageDiscontributor);
-    connect(m_biliBiliMessage, &BiliBiliMessage::errorOccurred, this, [this](QString error) {
-        errorMessageDiscontributor(0, error);
+
+    // 风控提醒
+    connect(m_biliBiliMessage, &BiliBiliMessage::overLoadMessage, this, [this]() {
+        overLoadMessageDiscontributor(0);
     });
 
     if (m_enableDouyin) {
@@ -39,8 +37,10 @@ QueryCenter::QueryCenter(std::shared_ptr<spdlog::logger>& logger,
         connect(m_douyinThread, &QThread::finished, m_douyinMessage, &DouyinMessage::deleteLater);
 
         connect(m_douyinMessage, &DouyinMessage::newDouyinDynamic, this, &QueryCenter::douyinDynamicMessageDiscontributor);
-        connect(m_douyinMessage, &DouyinMessage::errorOccurred, this, [this](QString error) {
-            errorMessageDiscontributor(1, error);
+
+        // 风控提醒
+        connect(m_douyinMessage, &DouyinMessage::overLoadMessage, this, [this]() {
+            overLoadMessageDiscontributor(1);
         });
     }
 }
@@ -106,46 +106,20 @@ void QueryCenter::douyinDynamicMessageDiscontributor(QString uid, int type, cons
     emit newDouyinDynamicMessage(message, avatar, desc, url);
 }
 
-void QueryCenter::errorMessageDiscontributor(int type, const QString& message) {
-    QString typeString;
+// 风控消息
+void QueryCenter::overLoadMessageDiscontributor(int type) {
+    QString errorString;
     switch (type) {
         case 0:
-            typeString = "【哔哩哔哩】";
+            errorString = "【哔哩哔哩】";
             break;
         case 1:
-            typeString = "【抖音】";
+            errorString = "【抖音】";
             break;
         default:
             break;
     }
 
-    qDebug() << typeString << "Error Occurred Signal...";
-
-    m_errCountArr[type]++;
-    qDebug() << m_errCountArr[type];
-
-    if (m_errCountArr[type] < 3) {
-        emit newErrorMessage(message);
-    } else if (m_errCountArr[type] == 3) {
-        // 错误次数达到3次及以上，停止发送错误卡片
-        qDebug() << "Type:" << typeString
-                 << "错误信号数已达到3次，停止发送错误提醒。";
-        m_logger->error(QString(typeString + "错误信号数已达到3次，停止发送错误提醒。").toStdString());
-        emit newErrorMessage("插件错误达到3次，停止错误提醒。\n10分钟后错误提醒计数会自动归零，此后错误提醒会正常发送。");
-
-        qDebug() << typeString << "错误信号数清零计时开始";
-        m_logger->info(QString(typeString + "错误信号数清零计时开始").toStdString());
-        QTimer::singleShot(1000*60*3, [type, typeString, this]() {
-            qDebug() << typeString << "错误信号数清零计时达10分钟";
-            m_logger->info(QString(typeString + "错误信号数清零计时达10分钟").toStdString());
-            m_errCountArr[type] = 0;
-        });
-
-    } else if (m_errCountArr[type] >= 6) {
-        // 错误次数达到6次及以上，退出程序
-        qDebug() << typeString << "错误信号数已达到6次及以上，发送错误提醒并退出程序。";
-        m_logger->error(QString(typeString + "错误信号数已达到6次及以上，发送错误提醒并退出程序。").toStdString());
-        emit newErrorMessage("错误信号数已达到6次及以上，发送错误提醒并退出程序。");
-        emit sayGoodbye();
-    }
+    errorString += "检测到服务器风控，线程休眠30min。";
+    emit newOverLoadMessage(errorString);
 }

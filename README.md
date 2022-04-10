@@ -23,9 +23,11 @@
 
 为应对B站接口限制，目前查询为30秒/次，因此消息推送可能会有较短延迟（最大延迟1min左右）。
 
-注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
-
-注：叔叔有风控系统，有时同一局域网请求过多，即使是30s一次查询也会因为服务器过载保护被掐。插件出错6次自动退出后，可以自行前往`logs`文件夹内的日志文件验证是否为这种情况（一般错误提示是远程关闭了访问）。此时可以**等待半小时左右**重新开启插件。
+> 注：本插件为控制台程序（Console Application），无界面无托盘。可以通过查询`ASoulNotification.exe`进程检查插件运行状态。
+>
+> 注：叔叔有风控系统，有时同一局域网请求过多，即使是30s一次查询也会因为服务器过载保护被掐。插件检测到被服务器风控后会自动休眠30min。
+>
+> 注：插件开启了日志系统，可以自行前往`logs`文件夹查看日志文件（反馈BUG请提交log，秋梨膏）。
 
 [功能介绍](#功能介绍)|[使用教程](#使用教程)|[下载地址](#下载地址)|[友情链接](#友情链接)
 
@@ -39,11 +41,11 @@
 
 
 
-### 运行出错提醒
+### 风控提醒
 
-运行中出现错误会发出相应提醒。
+运行中出现检测到服务器风控会自动睡眠30min并发出相应提醒。
 
-![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/error.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/sleep.png)
 
 
 

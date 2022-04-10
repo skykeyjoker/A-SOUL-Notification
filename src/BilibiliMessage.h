@@ -24,12 +24,14 @@ public:
     BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStringList& uidList, QObject* parent = nullptr);
 
 public slots:
-    void startQuery();
+    [[noreturn]] void startQuery();
 
 signals:
     void newBilibiliMessage(int user, int type, const QString dynamic_id_str);
     void newBilibiliLive(int user, const QString title, const QString url);
     void errorOccurred(const QString errorString);
+    // 风控消息
+    void overLoadMessage();
 
 private:
     BiliBiliMessageRes messageQuery(const QString& url);// 每次查询返回一组动态

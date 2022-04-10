@@ -17,7 +17,7 @@ BiliBiliMessage::BiliBiliMessage(std::shared_ptr<spdlog::logger>& logger, QStrin
     m_logger->info("【哔哩哔哩】哔哩哔哩查询模块初始化成功。");
 }
 
-void BiliBiliMessage::startQuery() {
+[[noreturn]] void BiliBiliMessage::startQuery() {
     /* 30s/次查询 */
     qDebug() << "【哔哩哔哩】Start one query.";
     m_logger->info("【哔哩哔哩】哔哩哔哩查询模块开始查询。");
@@ -53,10 +53,6 @@ void BiliBiliMessage::startQuery() {
                         }
                     }
                 }
-            } else {
-                QString errorString = "【哔哩哔哩】查询成员动态时发生错误，返回了空的消息卡片组！";
-                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，返回了空的消息卡片组！");
-                emit errorOccurred(errorString);
             }
             // 延时
             QThread::sleep(1);
@@ -74,10 +70,6 @@ void BiliBiliMessage::startQuery() {
 
                     m_liveStatusMap[card.mid] = card.status;// 更新liveStatusMap
                 }
-            } else {
-                QString errorString = "【哔哩哔哩】查询成员直播状态时发生错误，返回了空的直播状态卡片！";
-                m_logger->error("【哔哩哔哩】查询成员直播状态时发生错误，返回了空的直播状态卡片！");
-                emit errorOccurred(errorString);
             }
             // 延时
             QThread::sleep(1);
@@ -104,14 +96,11 @@ void BiliBiliMessage::startQuery() {
 
 BiliBiliMessageRes BiliBiliMessage::messageQuery(const QString& url) {
     BiliBiliMessageRes res;
-    //ret.is_null = true;
 
     Json doc = getJson(url);
     if (doc.is_null()) {
         qDebug() << "【哔哩哔哩】Message Query Error. Reason: The json is null";
-        QString errorString = "【哔哩哔哩】查询成员动态时发生错误，获取的JSON值为空！";
         m_logger->error("【哔哩哔哩】查询成员动态时发生错误，获取的JSON值为空！");
-        //emit errorOccurred(errorString);
         return res;
     }
 
@@ -145,19 +134,19 @@ BiliBiliMessageRes BiliBiliMessage::messageQuery(const QString& url) {
                 m_logger->info("【哔哩哔哩】动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", currentMessageCard.uid, currentMessageCard.nickname.toStdString(), currentMessageCard.type, currentMessageCard.dynamic_id_str.toStdString());
 
                 res.push_back(currentMessageCard);
+            } catch (Json::exception& ex) {
+                qDebug() << "【哔哩哔哩】Message Query Error. Exception occurred when parsing the json. Exception:" << ex.what();
+                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
+                return res;
             } catch (...) {
-                qDebug() << "【哔哩哔哩】Message Query Error. Reason: The json can not be parsed";
-                QString errorString = "【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON！";
-                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON！");
-                //emit errorOccurred(errorString);
+                qDebug() << "【哔哩哔哩】Message Query Error. Unknown Exception occurred when parsing the json.";
+                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生未知异常");
                 return res;
             }
         }
     } else {
-        qDebug() << "【哔哩哔哩】Message Query Error. Reason: The json can not be parsed";
-        QString errorString = "【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON！";
-        m_logger->error("【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON！");
-        //emit errorOccurred(errorString);
+        qDebug() << "【哔哩哔哩】Message Query Error. Reason: The json can not be parsed. [data]or[cards] not exists.";
+        m_logger->error("【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON，[data]或[cards]字段不存在。");
         return res;
     }
 
@@ -171,9 +160,7 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url) {
     Json doc = getJson(url);
     if (doc.is_null()) {
         qDebug() << "【哔哩哔哩】Live Query Error. Reason: The json is null";
-        QString errorString = "【哔哩哔哩】查询成员直播状态时发生错误，获取的JSON值为空！";
         m_logger->error("【哔哩哔哩】查询成员直播状态时发生错误，获取的JSON值为空！");
-        //emit errorOccurred(errorString);
         return ret;
     }
 
@@ -193,11 +180,13 @@ BilibiliLiveCard BiliBiliMessage::liveQuery(const QString& url) {
         liveurl = QString::fromStdString(doc["data"]["live_room"]["url"].get<std::string>());
         // Fuck You Bilibili, live room url TRAITS https://live.bilibili.com/22625027?broadcast_type=0\u0026is_room_feed=1
         liveurl = liveurl.mid(0, liveurl.indexOf('?'));
+    } catch (Json::exception& ex) {
+        qDebug() << "【哔哩哔哩】Live Query Error, Exception occurred when parsing the json. Exception:" << ex.what();
+        m_logger->error("【哔哩哔哩】查询成员直播状态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
+        return ret;
     } catch (...) {
-        qDebug() << "【哔哩哔哩】Live Query Error. Reason: The json can not be parsed";
-        QString errorString = "【哔哩哔哩】查询成员直播状态时发生错误，未能解析获取的JSON！";
-        m_logger->error("【哔哩哔哩】查询成员直播状态时发生错误，未能解析获取的JSON！");
-        //emit errorOccurred(errorString);
+        qDebug() << "【哔哩哔哩】Live Query Error, Unknown Exception occurred when parsing the json.";
+        m_logger->error("【哔哩哔哩】查询成员直播状态时发生错误，解析获取的JSON时发生未知异常");
         return ret;
     }
 
@@ -224,10 +213,52 @@ Json BiliBiliMessage::getJson(const QString& url) {
     eventLoop.exec();
 
     if (reply->error() != QNetworkReply::NoError) {
-        qDebug() << "【哔哩哔哩】Query Error! Reason: request error" << reply->errorString() << url;
-        m_logger->error("【哔哩哔哩】请求失败，错误类型：{}", reply->errorString().toStdString());
-        QString errorString = "【哔哩哔哩】请求失败，错误类型：" + reply->errorString();
-        //emit errorOccurred(errorString);
+        qDebug() << "【哔哩哔哩】Query Error! Reason: request error" << reply->error() << reply->errorString() << url;
+        m_logger->error("【哔哩哔哩】请求失败，错误类型：{}，{}", (int) reply->error(), reply->errorString().toStdString());
+
+        switch (reply->error()) {
+            case QNetworkReply::RemoteHostClosedError: {
+                // Connection Closed
+                qDebug() << "【哔哩哔哩】请求时服务器关闭了链接，线程睡眠3s。";
+                m_logger->error("【哔哩哔哩】请求时服务器关闭了链接，线程睡眠3s。");
+                QThread::sleep(3);
+                qDebug() << "【哔哩哔哩】从请求时发生的链接关闭错误恢复";
+                m_logger->info("【哔哩哔哩】从请求时发生的链接关闭错误恢复");
+                break;
+            }
+
+            case QNetworkReply::ProxyConnectionRefusedError:
+            case QNetworkReply::ProxyConnectionClosedError:
+            case QNetworkReply::ProxyNotFoundError:
+            case QNetworkReply::ProxyTimeoutError:
+            case QNetworkReply::ProxyAuthenticationRequiredError:
+            case QNetworkReply::UnknownProxyError: {
+                // Proxy Error 代理错误
+                qDebug() << "【哔哩哔哩】请求时发生代理错误，线程睡眠3s。";
+                m_logger->error("【哔哩哔哩】请求时发生代理错误，线程睡眠3s。");
+                QThread::sleep(3);
+                qDebug() << "【哔哩哔哩】从请求时发生的代理错误恢复。";
+                m_logger->info("【哔哩哔哩】从请求时发生的代理错误恢复。");
+                break;
+            }
+
+            case QNetworkReply::UnknownContentError: {
+                // Precondition Failed 风控
+                if (reply->errorString().contains("Error transferring")) {
+                    qDebug() << "【哔哩哔哩】请求时检测到风控，线程睡眠30min。";
+                    m_logger->error("【哔哩哔哩】请求时检测到风控，线程睡眠30min。");
+                    emit overLoadMessage();// 发送风控消息
+                    QThread::sleep(60 * 10 * 3);
+                    qDebug() << "【哔哩哔哩】从风控状态恢复。";
+                    m_logger->info("【哔哩哔哩】从风控状态恢复。");
+                }
+                break;
+            }
+
+            default:
+                break;
+        }
+
         reply->deleteLater();
         return j;
     }
@@ -237,8 +268,6 @@ Json BiliBiliMessage::getJson(const QString& url) {
     if (buf.isNull()) {
         qDebug() << "【哔哩哔哩】No Data return";
         m_logger->error("【哔哩哔哩】请求失败，获取了空的返回数据！");
-        QString errorString = "【哔哩哔哩】请求失败，获取了空的返回数据！";
-        //emit errorOccurred(errorString);
         return j;
     }
 
@@ -246,8 +275,6 @@ Json BiliBiliMessage::getJson(const QString& url) {
     if (j.is_null()) {
         qDebug() << "【哔哩哔哩】Parse Json Error!" << url;
         m_logger->error("【哔哩哔哩】请求失败，未能成功解析JSON！");
-        QString errorString = "【哔哩哔哩】请求失败，未能成功解析JSON！";
-        //emit errorOccurred(errorString);
         return j;
     }
 
@@ -255,19 +282,19 @@ Json BiliBiliMessage::getJson(const QString& url) {
     int retCode;
     try {
         retCode = j["code"].get<int>();
+    } catch (Json::exception& ex) {
+        qDebug() << "【哔哩哔哩】Parse Json Error! Exception occurred whe getting the [code]. Exception:" << ex.what();
+        m_logger->error("【哔哩哔哩】请求失败，解析JSON[code]时发生异常：{}！", ex.what());
+        return Json();// 返回空的JSON
     } catch (...) {
-        qDebug() << "【哔哩哔哩】Parse Json Error! Can not get the [code]";
-        m_logger->error("【哔哩哔哩】请求失败，解析JSON[code]时失败！");
-        QString errorString = "【哔哩哔哩】请求失败，解析JSON[code]时失败！";
-        //emit errorOccurred(errorString);
+        qDebug() << "【哔哩哔哩】Parse Json Error! Exception occurred whe getting the [code]. Unknown Exception:";
+        m_logger->error("【哔哩哔哩】请求失败，解析JSON[code]时发生未知异常。");
         return Json();// 返回空的JSON
     }
 
     if (retCode != 0) {
-        qDebug() << "【哔哩哔哩】Return Code is not null";
+        qDebug() << "【哔哩哔哩】Return Code Error" << retCode;
         m_logger->error("【哔哩哔哩】请求失败，返回状态码：{}", retCode);
-        QString errorString = "【哔哩哔哩】请求失败，返回状态码：" + QString::number(retCode);
-        //emit errorOccurred(errorString);
         return Json();// 返回空的JSON
     }
 

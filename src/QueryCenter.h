@@ -32,9 +32,8 @@ signals:
 
     void newDouyinDynamicMessage(QString message, QString avatar, QString title, QString url);
 
-    void newErrorMessage(QString message);
-
-    void sayGoodbye();
+    // 风控消息提醒
+    void newOverLoadMessage(QString message);
 
 protected slots:
     void bilibiliDynamicMessageDiscontributor(int user, int type, const QString dynamic_id_str);
@@ -42,7 +41,7 @@ protected slots:
 
     void douyinDynamicMessageDiscontributor(QString uid, int type, const QString aweme_id, QString desc);
 
-    void errorMessageDiscontributor(int type, const QString &message);
+    void overLoadMessageDiscontributor(int type);
 
 private:
     std::shared_ptr<spdlog::logger>& m_logger;
@@ -59,9 +58,6 @@ private:
 
     QThread* m_douyinThread;
     DouyinMessage* m_douyinMessage;
-
-    // 错误计数
-    int m_errCountArr[2]; // 0:Bilibili 1:Douyin
 };
 
 
