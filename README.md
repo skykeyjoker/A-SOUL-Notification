@@ -45,7 +45,7 @@
 
 运行中出现检测到服务器风控会自动睡眠30min并发出相应提醒。
 
-![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/sleep.png)
+![](https://cdn.jsdelivr.net/gh/skykeyjoker/A-Soul-Notification@master/screenshots/overload.jpg)
 
 
 
