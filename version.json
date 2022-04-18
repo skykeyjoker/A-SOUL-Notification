@@ -1,6 +1,10 @@
 {
     "versions": [
         {
+            "version": "v3.2.0",
+            "url": "https://github.com/skykeyjoker/A-Soul-Notification/releases/tag/v3.2.0"
+        },
+        {
             "version": "v3.1.0",
             "url": "https://github.com/skykeyjoker/A-Soul-Notification/releases/tag/v3.1.0"
         },

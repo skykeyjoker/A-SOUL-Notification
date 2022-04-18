@@ -108,7 +108,7 @@ BiliBiliMessageRes BiliBiliMessage::messageQuery(const QString& url) {
 	 * JSON_THROW(std::out_of_range("key not found"));
 	 */
 
-    if (doc.contains("data") && doc["data"].contains("cards")) {
+    try {
         Json cardArr = doc["data"]["cards"];
         int uid = cardArr[0]["desc"]["uid"].get<int>();
         QString nickname = QString::fromStdString(cardArr[0]["desc"]["user_profile"]["info"]["uname"].get<std::string>());
@@ -121,32 +121,26 @@ BiliBiliMessageRes BiliBiliMessage::messageQuery(const QString& url) {
             Json currentCardJson = cardArr[i];
             BilibiliDynamicCard currentMessageCard;
 
-            try {
-                type = currentCardJson["desc"]["type"].get<int>();
-                dynamic_id_str = QString::fromStdString(currentCardJson["desc"]["dynamic_id_str"].get<std::string>());
+            type = currentCardJson["desc"]["type"].get<int>();
+            dynamic_id_str = QString::fromStdString(currentCardJson["desc"]["dynamic_id_str"].get<std::string>());
 
-                currentMessageCard.uid = uid;
-                currentMessageCard.type = type;
-                currentMessageCard.dynamic_id_str = dynamic_id_str;
-                currentMessageCard.nickname = nickname;
+            currentMessageCard.uid = uid;
+            currentMessageCard.type = type;
+            currentMessageCard.dynamic_id_str = dynamic_id_str;
+            currentMessageCard.nickname = nickname;
 
-                qDebug() << "【哔哩哔哩】Message Query: " << currentMessageCard.uid << currentMessageCard.nickname << currentMessageCard.type << currentMessageCard.dynamic_id_str;
-                m_logger->info("【哔哩哔哩】动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", currentMessageCard.uid, currentMessageCard.nickname.toStdString(), currentMessageCard.type, currentMessageCard.dynamic_id_str.toStdString());
+            qDebug() << "【哔哩哔哩】Message Query: " << currentMessageCard.uid << currentMessageCard.nickname << currentMessageCard.type << currentMessageCard.dynamic_id_str;
+            m_logger->info("【哔哩哔哩】动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}", currentMessageCard.uid, currentMessageCard.nickname.toStdString(), currentMessageCard.type, currentMessageCard.dynamic_id_str.toStdString());
 
-                res.push_back(currentMessageCard);
-            } catch (Json::exception& ex) {
-                qDebug() << "【哔哩哔哩】Message Query Error. Exception occurred when parsing the json. Exception:" << ex.what();
-                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
-                return res;
-            } catch (...) {
-                qDebug() << "【哔哩哔哩】Message Query Error. Unknown Exception occurred when parsing the json.";
-                m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生未知异常");
-                return res;
-            }
+            res.push_back(currentMessageCard);
         }
-    } else {
-        qDebug() << "【哔哩哔哩】Message Query Error. Reason: The json can not be parsed. [data]or[cards] not exists.";
-        m_logger->error("【哔哩哔哩】查询成员动态时发生错误，未能解析获取的JSON，[data]或[cards]字段不存在。");
+    } catch (Json::exception& ex) {
+        qDebug() << "【哔哩哔哩】Message Query Error. Exception occurred when parsing the json. Exception:" << ex.what();
+        m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
+        return res;
+    } catch (...) {
+        qDebug() << "【哔哩哔哩】Message Query Error. Unknown Exception occurred when parsing the json.";
+        m_logger->error("【哔哩哔哩】查询成员动态时发生错误，解析获取的JSON时发生未知异常");
         return res;
     }
 

@@ -5,7 +5,7 @@
 #include <QString>
 #include <QStringList>
 
-const QString VERSION = "3.1.0";
+const QString VERSION = "3.2.0";
 
 const QString BDYNAMICQUERY("https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/space_history?host_uid=");
 const QString BLIVEQUERY("https://api.bilibili.com/x/space/acc/info?mid=");

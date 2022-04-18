@@ -91,8 +91,7 @@ DouyinDynamicRes DouyinMessage::dynamicQuery(const QString &url) {
     /* []操作符理应有异常机制，对异常机制进行处理
 	 * JSON_THROW(std::out_of_range("key not found"));
 	 */
-
-    if (doc.contains("aweme_list")) {
+    try {
         Json aweme_list = doc["aweme_list"];
 
         QString uid = QString::fromStdString(aweme_list[0]["author"]["unique_id"].get<std::string>());
@@ -109,40 +108,34 @@ DouyinDynamicRes DouyinMessage::dynamicQuery(const QString &url) {
             Json currentDynamicCardJson = aweme_list[i];
             DouyinDynamicCard currentDynamicCard;
 
-            try {
-                type = currentDynamicCardJson["aweme_type"].get<int>();
-                aweme_id = QString::fromStdString(currentDynamicCardJson["aweme_id"].get<std::string>());
-                desc = QString::fromStdString(currentDynamicCardJson["desc"].get<std::string>());
+            type = currentDynamicCardJson["aweme_type"].get<int>();
+            aweme_id = QString::fromStdString(currentDynamicCardJson["aweme_id"].get<std::string>());
+            desc = QString::fromStdString(currentDynamicCardJson["desc"].get<std::string>());
 
-                currentDynamicCard.uid = uid;
-                currentDynamicCard.type = type;
-                currentDynamicCard.aweme_id = aweme_id;
-                currentDynamicCard.nickname = nickname;
-                currentDynamicCard.desc = desc;
+            currentDynamicCard.uid = uid;
+            currentDynamicCard.type = type;
+            currentDynamicCard.aweme_id = aweme_id;
+            currentDynamicCard.nickname = nickname;
+            currentDynamicCard.desc = desc;
 
-                qDebug() << "【抖音】Message Query: " << currentDynamicCard.uid << currentDynamicCard.nickname
-                         << currentDynamicCard.type << currentDynamicCard.aweme_id << currentDynamicCard.desc;
-                m_logger->info("【抖音】动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}，标题：{}",
-                               currentDynamicCard.uid.toStdString(),
-                               currentDynamicCard.nickname.toStdString(),
-                               currentDynamicCard.type,
-                               currentDynamicCard.aweme_id.toStdString(),
-                               currentDynamicCard.desc.toStdString());
+            qDebug() << "【抖音】Message Query: " << currentDynamicCard.uid << currentDynamicCard.nickname
+                     << currentDynamicCard.type << currentDynamicCard.aweme_id << currentDynamicCard.desc;
+            m_logger->info("【抖音】动态消息卡片：UID：{}，昵称：{}，类型：{}，动态ID：{}，标题：{}",
+                           currentDynamicCard.uid.toStdString(),
+                           currentDynamicCard.nickname.toStdString(),
+                           currentDynamicCard.type,
+                           currentDynamicCard.aweme_id.toStdString(),
+                           currentDynamicCard.desc.toStdString());
 
-                res.push_back(currentDynamicCard);
-            } catch (Json::exception &ex) {
-                qDebug() << "【抖音】Message Query Error. Exception occurred when parsing the json. Exception:{}" << ex.what();
-                m_logger->error("【抖音】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
-                return res;
-            } catch (...) {
-                qDebug() << "【抖音】Message Query Error. Unknown exception occurred when parsing the json.";
-                m_logger->error("【抖音】铲鲟成员动态时发生错误，解析获取的JSON时发生未知异常");
-                return res;
-            }
+            res.push_back(currentDynamicCard);
         }
-    } else {
-        qDebug() << "【抖音】Message Query Error. Reason: The json can not be parsed. [aweme_list] not exists.";
-        m_logger->error("【抖音】查询成员动态时发生错误，未能解析获取的JSON，[aweme_list]段不存在。");
+    } catch (Json::exception &ex) {
+        qDebug() << "【抖音】Message Query Error. Exception occurred when parsing the json. Exception:{}" << ex.what();
+        m_logger->error("【抖音】查询成员动态时发生错误，解析获取的JSON时发生异常：{}", ex.what());
+        return res;
+    } catch (...) {
+        qDebug() << "【抖音】Message Query Error. Unknown exception occurred when parsing the json.";
+        m_logger->error("【抖音】查询成员动态时发生错误，解析获取的JSON时发生未知异常");
         return res;
     }
 
