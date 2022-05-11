@@ -14,6 +14,9 @@
         <img src="https://img.shields.io/badge/License-MIT-flat.svg" alt="GitHub license"/>
     </a>
 </p>
+<h1 align="center">本项目已进入无限期休眠，不保证日后会继续维护。本项目已经跟着我心里的那个A-SOUL一起死了。</h1>
+
+<h1 align="center">羊驼，管理层，我杀你一万遍也不够。</h1>
 
 一个A-SOUL成员动态/直播提醒插件，支持监控B站与抖音。仅能在Windows10-Windows11系统上运行。
 
